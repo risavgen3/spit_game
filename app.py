@@ -1,4 +1,13 @@
 import os
+
+# Eventlet monkey-patching MUST occur before importing socket/threading/time for Gunicorn on Render
+try:
+    import eventlet  # type: ignore
+    eventlet.monkey_patch()
+    async_mode = 'eventlet'
+except Exception:
+    async_mode = 'threading'
+
 import random
 import uuid
 import threading
@@ -10,16 +19,8 @@ from flask_socketio import SocketIO, emit, join_room, leave_room  # type: ignore
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
-# Automatic async_mode detection (eventlet for production gunicorn, threading for local dev)
-async_mode: Literal["threading", "eventlet"] = "threading"
 if os.environ.get('ASYNC_MODE') == 'eventlet':
     async_mode = 'eventlet'
-else:
-    try:
-        import eventlet  # type: ignore
-        async_mode = 'eventlet'
-    except ImportError:
-        async_mode = 'threading'
 
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode=async_mode)  # type: ignore
 
@@ -133,7 +134,7 @@ class GameRoom:
                     delay = random.uniform(1.8, 2.8)
                     hesitation_chance = 0.10
 
-                time.sleep(delay)
+                socketio.sleep(delay)
 
                 with self.lock:
                     if self.status != 'playing' or not self.is_bot_p2 or self.p2_sid != bot_sid:
@@ -188,7 +189,7 @@ class GameRoom:
 
                 sync_room_state(self)
 
-        threading.Thread(target=bot_worker, daemon=True).start()
+        socketio.start_background_task(bot_worker)
 
     def reset_game(self):
         with self.lock:
@@ -457,6 +458,11 @@ def on_join(data):
 
         join_room(room_id)
         if room.p1_sid is None:
+            if join_only:
+                emit('join_error', {
+                    'message': f'Room "{room_id}" has no active host. Please ask the host to create or share a new room code!'
+                })
+                return
             room.p1_sid = sid
             if not player_name:
                 player_name = 'Player 1'
@@ -467,7 +473,7 @@ def on_join(data):
                 if room.is_bot_p2:
                     room.remove_bot()
                 room.p2_sid = sid
-                if not player_name:
+                if not player_name or player_name == 'Player 1':
                     player_name = 'Player 2'
                 room.players[sid] = {'role': 'p2', 'name': player_name}
                 room.log_event(f'{player_name} joined as Player 2.')
@@ -494,13 +500,13 @@ def start_countdown(room):
 
         # Immediate broadcast of countdown start so clients react with zero delay
         sync_room_state(room)
-        time.sleep(1.0)
+        socketio.sleep(1.0)
 
         for count in [2, 1]:
             with room.lock:
                 room.countdown_val = count
             sync_room_state(room)
-            time.sleep(1.0)
+            socketio.sleep(1.0)
 
         with room.lock:
             room.countdown_val = 0
@@ -511,7 +517,7 @@ def start_countdown(room):
             room.trigger_bot_worker()
         sync_room_state(room)
 
-    threading.Thread(target=countdown_thread, daemon=True).start()
+    socketio.start_background_task(countdown_thread)
 
 def sync_room_state(room):
     with app.app_context():

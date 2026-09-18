@@ -1072,9 +1072,6 @@
             <button class="btn btn-primary btn-sm" onclick="openModeModal()">
                 🤖 Play vs AI Bot
             </button>
-            <button class="btn btn-sm" id="headerP2Btn" onclick="openPlayer2Window()">
-                🪟 Launch Player 2 Window
-            </button>
             <button class="btn btn-sm" onclick="toggleRulesModal()">
                 📖 How to Play
             </button>
@@ -1092,7 +1089,6 @@
         <span>⏳ Room: <b id="bannerRoomName" style="color: #fff;">lobby</b> — Select Mode or Invite Opponent</span>
         <div style="display: flex; gap: 8px;">
             <button class="btn btn-sm btn-primary" onclick="startBotGame('normal')">🤖 Play vs AI Now</button>
-            <button class="btn btn-sm" id="bannerP2Btn" onclick="openPlayer2Window()">🪟 Launch P2 Window</button>
             <button class="btn btn-sm" onclick="openModeModal()">📋 Mode Selection</button>
         </div>
     </div>
@@ -1223,7 +1219,7 @@
                     <span style="font-size: 1.1rem;">👤</span>
                     <label for="username" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Your Player Name:</label>
                 </div>
-                <input type="text" id="username" class="share-input" style="max-width: 170px; font-weight: 700; text-align: center;" placeholder="Your Name" value="Player 1" />
+                <input type="text" id="username" class="share-input" style="max-width: 170px; font-weight: 700; text-align: center;" placeholder="Your Name" value="Player 1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="event.stopPropagation()" />
                 <input type="hidden" id="roomname" value="lobby" />
             </div>
 
@@ -1284,9 +1280,6 @@
                                     🔗 Copy Link
                                 </button>
                             </div>
-                            <button class="btn btn-sm" id="p2WindowLaunchBtn" style="width: 100%; justify-content: center; margin-top: 6px;" onclick="openPlayer2Window('window')">
-                                🪟 Launch Player 2 Window
-                            </button>
                             <div style="font-size: 0.74rem; color: var(--accent-cyan); margin-top: 6px; text-align: center;">
                                 ⏳ Waiting for Player 2 to join...
                             </div>
@@ -1301,8 +1294,8 @@
                         <div style="display: flex; gap: 8px;">
                             <input type="text" id="joinRoomCodeInput" maxlength="6" pattern="[0-9]*" inputmode="numeric"
                                    placeholder="• • • • • •" class="digit-code-input" style="font-size: 1.15rem; padding: 7px 10px; width: 58%;"
-                                   oninput="this.value = this.value.replace(/\D/g, '').slice(0, 6);"
-                                   onkeydown="if(event.key==='Enter') joinWithCode()" />
+                                   oninput="this.value = this.value.replace(/\D/g, '').slice(0, 6); if(this.value.length === 6) joinWithCode();"
+                                   onkeydown="event.stopPropagation(); if(event.key==='Enter') joinWithCode()" autocomplete="off" />
                             <button class="btn btn-primary" id="btnJoinRoom" style="flex: 1; justify-content: center; padding: 8px 10px; font-size: 0.9rem; font-weight: 700;" onclick="joinWithCode()">
                                 ⚡ Join Match
                             </button>
@@ -1484,18 +1477,28 @@
             updateRoomDisplays(code);
             window.history.replaceState({}, '', `?room=${encodeURIComponent(code)}`);
 
-            const disp = document.getElementById('displayCreatedCode');
-            if (disp) disp.textContent = code;
+            const name = getPlayerName() || 'Player 1';
+            playerName = name;
 
-            const initDiv = document.getElementById('createRoomInitial');
-            if (initDiv) initDiv.style.display = 'none';
+            // Automatically take Player 1 inside the room (arena)
+            modalManuallyClosed = true;
+            closeModeModal();
 
-            const actDiv = document.getElementById('createRoomActive');
-            if (actDiv) actDiv.style.display = 'block';
+            const banner = document.getElementById('waitingBanner');
+            if (banner) {
+                banner.style.display = 'flex';
+                banner.innerHTML = `
+                    <span>🎲 Room: <b style="color: var(--accent-cyan); font-family: monospace; font-size: 1.15rem; letter-spacing: 2px;">${code}</b> — ⏳ Waiting for Player 2 to join...</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-sm btn-primary" onclick="copyRoomCodeOnly()">📋 Copy Code</button>
+                        <button class="btn btn-sm" onclick="copyInviteLink()">🔗 Share URL</button>
+                        <button class="btn btn-sm" onclick="openModeModal()">⚙️ Room Menu</button>
+                    </div>
+                `;
+            }
 
-            const name = getPlayerName() || 'Host (P1)';
             socket.emit('join_game', { name: name, room: code });
-            showToast(`Room ${code} created! Waiting for Player 2.`, 'success');
+            showToast(`Room ${code} created! You are inside as Player 1 (Host).`, 'success');
         }
 
         function copyRoomCodeOnly() {
@@ -1538,18 +1541,32 @@
             updateRoomDisplays(code);
             window.history.replaceState({}, '', `?room=${encodeURIComponent(code)}`);
 
-            if (joinBtn) {
-                joinBtn.disabled = true;
-                joinBtn.innerHTML = '⏳ Joining...';
+            // If player name is default 'Player 1', auto-default to 'Player 2' for the guest
+            const userEl = document.getElementById('username');
+            let name = (userEl ? userEl.value.trim() : '');
+            if (!name || name === 'Player 1') {
+                name = 'Player 2';
+                if (userEl) userEl.value = 'Player 2';
             }
-            if (statusDiv) {
-                statusDiv.style.display = 'block';
-                statusDiv.textContent = `Connecting to Room ${code}...`;
+            playerName = name;
+
+            // Automatically take Player 2 inside the room (arena)
+            modalManuallyClosed = true;
+            closeModeModal();
+
+            const banner = document.getElementById('waitingBanner');
+            if (banner) {
+                banner.style.display = 'flex';
+                banner.innerHTML = `
+                    <span>⚡ Room: <b style="color: var(--accent-cyan); font-family: monospace; font-size: 1.15rem; letter-spacing: 2px;">${code}</b> — ⏳ Entering room as Player 2...</span>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-sm" onclick="openModeModal()">⚙️ Change Room</button>
+                    </div>
+                `;
             }
 
-            const name = getPlayerName() || 'Player 2';
             socket.emit('join_game', { name: name, room: code, join_only: true });
-            showToast(`Connecting to Room ${code}...`, 'info');
+            showToast(`Entering Room ${code} as Player 2...`, 'info');
         }
 
         function autoDetectRoom() {
@@ -1561,6 +1578,19 @@
                 const joinInput = document.getElementById('joinRoomCodeInput');
                 if (joinInput && /^\d{6}$/.test(roomParam)) joinInput.value = roomParam;
                 updateRoomDisplays(roomParam);
+
+                // Auto-set Player 2 name if opened via room link
+                const userEl = document.getElementById('username');
+                if (userEl && (!userEl.value || userEl.value === 'Player 1')) {
+                    userEl.value = 'Player 2';
+                    playerName = 'Player 2';
+                }
+
+                // If opened with a 6-digit room, automatically take them inside
+                if (/^\d{6}$/.test(roomParam)) {
+                    modalManuallyClosed = true;
+                    if (typeof closeModeModal === 'function') closeModeModal();
+                }
             }
             const playerParam = urlParams.get('player');
             if (playerParam) {
@@ -1609,6 +1639,12 @@
 
         socket.on('join_error', (data) => {
             if (typeof sound !== 'undefined') sound.playInvalid();
+            openModeModal(); // Bring modal back so player can correct code
+            modalManuallyClosed = false;
+
+            const banner = document.getElementById('waitingBanner');
+            if (banner) banner.style.display = 'none';
+
             const errDiv = document.getElementById('joinCodeError');
             const statusDiv = document.getElementById('joinRoomStatus');
             const joinBtn = document.getElementById('btnJoinRoom');
@@ -2224,6 +2260,13 @@
             deselectCard();
         }
 
+        // Prevent mobile Safari elastic rubber-banding exposing detached background
+        document.addEventListener('touchmove', (e) => {
+            if (!e.target.closest('.modal-card, input, textarea, select')) {
+                if (e.cancelable) e.preventDefault();
+            }
+        }, { passive: false });
+
         function executePlay(cardId, pileNum) {
             socket.emit('play_card', {
                 room: roomId,
@@ -2347,6 +2390,7 @@
 
         // --- Keyboard Shortcuts ---
         window.addEventListener('keydown', (e) => {
+            if (e.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
             const key = e.key;
             if (['1', '2', '3', '4', '5'].includes(key)) {
                 const idx = parseInt(key) - 1;
