@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPIT! Arcade Card Clash</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🃏</text></svg>">
+
+    <!-- Google Fonts: Outfit (Arcade & Headings), Inter (Cards & Stats), Space Grotesk (Badges & Code) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800;900&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <!-- Local Socket.io client script first, CDN fallback -->
+    <script src="/static/socket.io.min.js"></script>
+    <script>
+        if (typeof io === 'undefined') {
+            const s = document.createElement('script');
+            s.src = "https://cdn.socket.io/4.7.5/socket.io.min.js";
+            document.head.appendChild(s);
+        }
+    </script>
+
+    <style>
+        :root {
+            /* Velvet Felt & Cyberpunk Arcade Palette */
+            --felt-table-center: #0d3520;
+            --felt-table-mid: #082315;
+            --felt-table-edge: #030d07;
+            --bg-surface: rgba(14, 25, 20, 0.92);
+            --bg-surface-card: #13241b;
+            --bg-card-stock: linear-gradient(155deg, #ffffff 0%, #fafbfc 45%, #f1f5f9 100%);
+
+            --accent-cyan: #00f2fe;
+            --accent-magenta: #ff007f;
+            --accent-gold: #ffb703;
+            --accent-emerald: #10b981;
+            --accent-ruby: #dc2626;
+            --card-black: #0f172a;
+
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-glow: rgba(0, 242, 254, 0.35);
+
+            --card-width: clamp(56px, 13.5vw, 98px);
+            --card-height: clamp(80px, 19.5vw, 144px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            /* Premium Emerald Casino Felt with Ambient Cyber Vignette */
+            background: radial-gradient(ellipse at 50% 28%, var(--felt-table-center) 0%, var(--felt-table-mid) 50%, var(--felt-table-edge) 100%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Felt texture subtle ambient overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: 
+                radial-gradient(ellipse at 50% 0%, rgba(0, 242, 254, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 100%, rgba(255, 0, 127, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Header Navigation */
+        header {
+            background: rgba(8, 22, 16, 0.88);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid rgba(0, 242, 254, 0.18);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 30;
+            gap: 12px;
+            flex-wrap: wrap;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.85rem;
+            font-weight: 900;
+            letter-spacing: 2.5px;
+            background: linear-gradient(135deg, var(--accent-cyan), #38ef7d);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 24px rgba(0, 242, 254, 0.45);
+        }
+
+        .badge-arcade {
+            font-family: 'Outfit', sans-serif;
+            background: rgba(255, 0, 127, 0.18);
+            color: var(--accent-magenta);
+            border: 1px solid var(--accent-magenta);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(255, 0, 127, 0.25);
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: rgba(19, 36, 27, 0.85);
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .btn:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 14px rgba(0, 242, 254, 0.4);
+            transform: translateY(-2px);
+            color: #fff;
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00b4d8, #0077b6);
+            border: none;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 180, 216, 0.35);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #00f2fe, #0096c7);
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.6);
+        }
+
+        .btn-accent {
+            background: linear-gradient(135deg, #ff007f, #b5179e);
+            border: none;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(255, 0, 127, 0.35);
+        }
+
+        .btn-accent:hover {
+            box-shadow: 0 0 20px rgba(255, 0, 127, 0.6);
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 0.78rem;
+            border-radius: 8px;
+        }
+
+        /* Top Waiting Banner */
+        .waiting-banner {
+            background: linear-gradient(90deg, rgba(255, 183, 3, 0.25), rgba(0, 242, 254, 0.25));
+            border-bottom: 1px solid var(--accent-gold);
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            z-index: 25;
+        }
+
+        .waiting-banner span {
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+
+        /* Main Game Arena */
+        .arena {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            max-width: 1100px;
+            width: 100%;
+            margin: 0 auto;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* Player Zones */
+        .player-zone {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .player-meta {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: rgba(10, 26, 18, 0.82);
+            backdrop-filter: blur(8px);
+            padding: 6px 18px;
+            border-radius: 30px;
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .player-name {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .player-name.opponent { color: var(--accent-magenta); }
+        .player-name.local { color: var(--accent-cyan); }
+
+        .stat-pill {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.84rem;
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .stat-value {
+            font-family: 'Space Grotesk', monospace;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+
+        /* In-Game Dynamic Bot Speed Switcher */
+        .bot-speed-bar {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(4, 15, 10, 0.85);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            border-radius: 20px;
+            padding: 3px 8px;
+            margin-left: 6px;
+            font-size: 0.75rem;
+        }
+
+        .speed-pill-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .speed-pill-btn:hover {
+            color: #fff;
+            border-color: rgba(0, 242, 254, 0.4);
+        }
+
+        .speed-pill-btn.active {
+            background: var(--accent-cyan);
+            color: #020804;
+            font-weight: 900;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
+        }
+
+        /* Cards Row Container */
+        .cards-row {
+            display: flex;
+            gap: clamp(6px, 1.8vw, 16px);
+            justify-content: center;
+            align-items: center;
+            min-height: var(--card-height);
+            padding: 4px;
+            width: 100%;
+        }
+
+        /* ----------------------------------------------------
+           PREMIUM PHYSICAL PLAYING CARD COMPONENT
+           ---------------------------------------------------- */
+        .card {
+            width: var(--card-width);
+            height: var(--card-height);
+            background: var(--bg-card-stock);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: clamp(6px, 1.4vw, 10px) clamp(6px, 1.4vw, 10px);
+            position: relative;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 
+                0 1px 3px rgba(0, 0, 0, 0.15),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.95),
+                inset 0 0 0 2px rgba(0, 0, 0, 0.06),
+                0 8px 24px rgba(0, 0, 0, 0.55);
+            transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.2s ease;
+            transform-origin: center bottom;
+        }
+
+        /* Inner ornamental border inset */
+        .card::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 9px;
+            pointer-events: none;
+        }
+
+        /* Card Color Profiles */
+        .card.red {
+            color: var(--accent-ruby);
+        }
+
+        .card.black {
+            color: var(--card-black);
+        }
+
+        /* Card Corner Pips */
+        .card-corner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 0.95;
+            font-family: 'Inter', sans-serif;
+            font-weight: 900;
+            font-size: clamp(0.95rem, 2.3vw, 1.25rem);
+            letter-spacing: -0.5px;
+            z-index: 2;
+        }
+
+        .card-corner span:last-child {
+            font-size: 0.78em;
+            margin-top: 1px;
+        }
+
+        .card-corner.bottom {
+            transform: rotate(180deg);
+        }
+
+        /* Center Suit Watermark / Art */
+        .card-center-symbol {
+            font-size: clamp(1.8rem, 4.5vw, 2.6rem);
+            text-align: center;
+            line-height: 1;
+            user-select: none;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.08));
+            z-index: 2;
+        }
+
+        /* Local Hand Keyboard Hint */
+        .card-key-hint {
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(3, 13, 8, 0.9);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 242, 254, 0.5);
+            font-family: 'Space Grotesk', monospace;
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 1px 7px;
+            border-radius: 6px;
+            pointer-events: none;
+            box-shadow: 0 0 8px rgba(0, 242, 254, 0.3);
+            white-space: nowrap;
+        }
+
+        /* Interactive Card States: Hover, Selected, Shake */
+        .player-hand .card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 
+                0 16px 32px rgba(0, 242, 254, 0.35),
+                inset 0 0 0 1px rgba(0, 242, 254, 0.6),
+                0 8px 24px rgba(0, 0, 0, 0.6);
+            border-color: var(--accent-cyan);
+            z-index: 10;
+        }
+
+        .player-hand .card.selected {
+            transform: translateY(-14px) scale(1.08);
+            border-color: var(--accent-cyan);
+            box-shadow: 
+                0 0 0 2px var(--accent-cyan),
+                0 0 25px rgba(0, 242, 254, 0.85),
+                0 18px 36px rgba(0, 0, 0, 0.7);
+            z-index: 15;
+            animation: cardSelectedGlow 1.4s infinite alternate;
+        }
+
+        @keyframes cardSelectedGlow {
+            0% { box-shadow: 0 0 0 2px var(--accent-cyan), 0 0 16px rgba(0, 242, 254, 0.6); }
+            100% { box-shadow: 0 0 0 2px var(--accent-cyan), 0 0 32px rgba(0, 242, 254, 0.95); }
+        }
+
+        /* Invalid Move Shake Effect */
+        .card.shake {
+            animation: cardShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+            border-color: var(--accent-ruby) !important;
+            box-shadow: 0 0 28px rgba(220, 38, 38, 0.9) !important;
+        }
+
+        @keyframes cardShake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px) rotate(-2deg); }
+            40% { transform: translateX(8px) rotate(2deg); }
+            60% { transform: translateX(-5px) rotate(-1deg); }
+            80% { transform: translateX(5px) rotate(1deg); }
+        }
+
+        /* ----------------------------------------------------
+           CENTRAL BATTLEGROUND & PILES
+           ---------------------------------------------------- */
+        .battleground {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(16px, 4vw, 44px);
+            margin: 10px 0;
+            width: 100%;
+            position: relative;
+        }
+
+        .pile-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pile-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .central-pile {
+            width: var(--card-width);
+            height: var(--card-height);
+            border-radius: 12px;
+            border: 2px dashed rgba(255, 255, 255, 0.28);
+            background: rgba(8, 26, 17, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .central-pile * {
+            pointer-events: none;
+        }
+
+        .central-pile .card {
+            animation: cardSnap 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes cardSnap {
+            0% { transform: scale(0.9) rotate(-3deg); }
+            60% { transform: scale(1.06) rotate(1deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+        .central-pile.active-target {
+            border-color: var(--accent-cyan);
+            border-style: solid;
+            background: rgba(0, 242, 254, 0.1);
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.5);
+            animation: targetPulse 1s infinite alternate;
+        }
+
+        @keyframes targetPulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.04); }
+        }
+
+        .central-pile.drag-hover {
+            border-color: var(--accent-magenta);
+            border-style: solid;
+            background: rgba(255, 0, 127, 0.2);
+            box-shadow: 0 0 35px var(--accent-magenta);
+            transform: scale(1.08);
+        }
+
+        /* ----------------------------------------------------
+           TACTILE ARCADE "SPIT!" BUTTON CENTERPIECE
+           ---------------------------------------------------- */
+        .spit-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .btn-spit {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #ff007f, #9333ea);
+            color: #fff;
+            border: none;
+            padding: clamp(10px, 2.2vw, 15px) clamp(20px, 3.5vw, 32px);
+            font-size: clamp(1.1rem, 2.6vw, 1.35rem);
+            font-weight: 900;
+            letter-spacing: 2px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 
+                0 6px 0 #701a75,
+                0 12px 25px rgba(255, 0, 127, 0.45);
+            transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .btn-spit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 8px 0 #701a75,
+                0 16px 35px rgba(255, 0, 127, 0.7);
+        }
+
+        .btn-spit:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 
+                0 2px 0 #701a75,
+                0 6px 15px rgba(255, 0, 127, 0.4);
+        }
+
+        .btn-spit:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* You Called Spit -> Waiting for Opponent */
+        .btn-spit.ready {
+            background: linear-gradient(135deg, #059669, #00b4d8);
+            box-shadow: 
+                0 6px 0 #047857,
+                0 12px 25px rgba(16, 185, 129, 0.55);
+            animation: pulseReady 1s infinite alternate;
+        }
+
+        @keyframes pulseReady {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        /* Opponent Called Spit -> Urgent Call to Action */
+        .btn-spit.opp-ready {
+            background: linear-gradient(135deg, #ffb703, #ff007f);
+            box-shadow: 
+                0 6px 0 #b45309,
+                0 0 35px rgba(255, 183, 3, 0.85);
+            animation: pulseUrgent 0.7s infinite alternate;
+        }
+
+        @keyframes pulseUrgent {
+            0% { transform: scale(1); box-shadow: 0 6px 0 #b45309, 0 0 20px #ffb703; }
+            50% { transform: scale(1.1); box-shadow: 0 8px 0 #b45309, 0 0 45px #ff007f; }
+            100% { transform: scale(1); box-shadow: 0 6px 0 #b45309, 0 0 20px #ffb703; }
+        }
+
+        .spit-status-text {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .spit-status-text.urgent {
+            color: var(--accent-gold);
+            font-weight: 800;
+            text-shadow: 0 0 10px rgba(255, 183, 3, 0.6);
+        }
+
+        /* Spit Flip Celebration Burst Banner */
+        .spit-burst-banner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, #ff007f, #ffb703);
+            color: #fff;
+            padding: 16px 36px;
+            border-radius: 40px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            box-shadow: 0 0 60px rgba(255, 0, 127, 0.85);
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            white-space: nowrap;
+        }
+
+        .spit-burst-banner.active {
+            transform: translate(-50%, -50%) scale(1.1);
+            opacity: 1;
+        }
+
+        /* Stock Deck Indicator */
+        .stock-deck {
+            width: 44px;
+            height: 60px;
+            border-radius: 8px;
+            background: repeating-linear-gradient(45deg, #13271c, #13271c 6px, #1b3827 6px, #1b3827 12px);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Grotesk', monospace;
+            font-weight: 800;
+            font-size: 0.95rem;
+            color: #fff;
+            box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4), 4px 4px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        /* Footer Status Bar */
+        .game-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 20px;
+            background: rgba(6, 18, 12, 0.88);
+            border-top: 1px solid rgba(16, 185, 129, 0.15);
+            font-size: 0.82rem;
+            z-index: 20;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .status-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 0.78rem;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .status-waiting { background: rgba(255, 183, 3, 0.2); color: var(--accent-gold); border: 1px solid var(--accent-gold); }
+        .status-countdown { background: rgba(0, 242, 254, 0.2); color: var(--accent-cyan); border: 1px solid var(--accent-cyan); }
+        .status-playing { background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald); border: 1px solid var(--accent-emerald); }
+        .status-game_over { background: rgba(255, 0, 127, 0.2); color: var(--accent-magenta); border: 1px solid var(--accent-magenta); }
+
+        .log-ticker {
+            color: var(--text-muted);
+            font-style: italic;
+            max-width: 65%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* ----------------------------------------------------
+           MODALS & OVERLAYS
+           ---------------------------------------------------- */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(3, 10, 6, 0.92);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 150; opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        .overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
+
+        .modal-card {
+            background: var(--bg-surface);
+            border: 1px solid rgba(0, 242, 254, 0.25);
+            border-radius: 24px;
+            padding: clamp(20px, 4vw, 36px);
+            max-width: 520px;
+            width: 92%;
+            text-align: center;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 242, 254, 0.15);
+            transform: scale(0.95);
+            transition: transform 0.25s ease;
+            position: relative;
+        }
+
+        .modal-card.wide { max-width: 640px; }
+        .overlay.active .modal-card { transform: scale(1); }
+
+        .modal-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            margin-bottom: 6px;
+            letter-spacing: 1.5px;
+        }
+
+        .modal-title.win {
+            background: linear-gradient(135deg, #10b981, #00f2fe, #ffb703);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal-title.lose {
+            background: linear-gradient(135deg, #ef476f, #ff007f);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal-desc {
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+
+        .btn-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.4rem;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .btn-close:hover { color: #fff; }
+
+        /* End Game Victory Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 16px 0 24px 0;
+        }
+
+        .stat-box {
+            background: rgba(5, 18, 12, 0.7);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-box-title {
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .stat-box-val {
+            font-family: 'Space Grotesk', monospace;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--accent-cyan);
+        }
+
+        .trophy-badge {
+            font-size: 4rem;
+            line-height: 1;
+            margin-bottom: 8px;
+            display: inline-block;
+            filter: drop-shadow(0 0 20px rgba(255, 183, 3, 0.6));
+            animation: trophyFloat 2s infinite ease-in-out alternate;
+        }
+
+        @keyframes trophyFloat {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(-8px) scale(1.08); }
+        }
+
+        /* Action Cards in Matchmaker */
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin: 16px 0;
+        }
+
+        .action-card {
+            background: rgba(6, 18, 12, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 14px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .action-card.featured {
+            border-color: rgba(0, 242, 254, 0.4);
+            background: linear-gradient(145deg, rgba(0, 242, 254, 0.08), rgba(6, 18, 12, 0.85));
+        }
+
+        .action-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+
+        .action-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .action-icon { font-size: 1.4rem; }
+        .action-title { font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 800; color: #fff; }
+        .action-desc { color: var(--text-muted); font-size: 0.82rem; line-height: 1.45; }
+
+        .diff-btn-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Lobby Status */
+        .lobby-status-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: rgba(4, 14, 9, 0.6);
+            padding: 10px 16px;
+            border-radius: 12px;
+            margin-bottom: 14px;
+        }
+
+        .slot-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot.online { background: var(--accent-emerald); box-shadow: 0 0 10px var(--accent-emerald); }
+        .dot.waiting { background: var(--accent-gold); box-shadow: 0 0 10px var(--accent-gold); animation: pulseDot 1s infinite; }
+        @keyframes pulseDot { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+        .share-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .share-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: var(--accent-cyan);
+            font-family: 'Space Grotesk', monospace;
+            font-size: 0.85rem;
+        }
+
+        /* Big Countdown Overlay */
+        .countdown-overlay {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Outfit', sans-serif;
+            font-size: 8.5rem; font-weight: 900; color: #fff;
+            text-shadow: 0 0 40px var(--accent-cyan), 0 0 80px var(--accent-magenta);
+            z-index: 120; pointer-events: none; opacity: 0; transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .countdown-overlay.show { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+
+        /* Toasts */
+        .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 160; pointer-events: none; }
+        .toast {
+            background: rgba(8, 22, 16, 0.95);
+            border-left: 4px solid var(--accent-ruby);
+            border-radius: 8px; padding: 10px 18px; color: #fff;
+            font-size: 0.88rem; box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+            transform: translateX(100px); opacity: 0; transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        .toast.visible { transform: translateX(0); opacity: 1; }
+        .toast.success { border-left-color: var(--accent-emerald); }
+        .toast.info { border-left-color: var(--accent-cyan); }
+        .toast.error { border-left-color: var(--accent-ruby); }
+
+        /* Canvas Confetti */
+        #confettiCanvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 155;
+        }
+
+        /* Responsive Mobile Layout adjustments */
+        @media (max-width: 720px) {
+            header { padding: 8px 12px; }
+            .brand h1 { font-size: 1.45rem; }
+            .badge-arcade { display: none; }
+            .action-grid { grid-template-columns: 1fr; }
+            .battleground { gap: 14px; margin: 6px 0; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .btn-spit { padding: 10px 20px; font-size: 1.1rem; }
+            .spit-burst-banner { font-size: 1.3rem; padding: 12px 24px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="confettiCanvas"></canvas>
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="countdown-overlay" id="countdownBanner">3</div>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="brand">
+            <h1>SPIT!</h1>
+            <span class="badge-arcade">Arcade Clash</span>
+        </div>
+        <div class="header-controls">
+            <span class="stat-pill" id="connectionBadge" style="font-weight: 800; color: var(--accent-emerald);">● Online</span>
+            <button class="btn btn-sm" onclick="returnToDashboard()" title="Return to Main Dashboard">
+                🏠 Dashboard
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openModeModal()">
+                🤖 Play vs AI Bot
+            </button>
+            <button class="btn btn-sm" id="headerP2Btn" onclick="openPlayer2Window()">
+                🪟 Launch Player 2 Window
+            </button>
+            <button class="btn btn-sm" onclick="toggleRulesModal()">
+                📖 How to Play
+            </button>
+            <button class="btn btn-sm" id="audioToggleBtn" onclick="toggleAudio()">
+                <span id="audioIcon">🔊</span> Sound
+            </button>
+            <button class="btn btn-sm" onclick="copyInviteLink()">
+                🔗 Share
+            </button>
+        </div>
+    </header>
+
+    <!-- Floating Top Banner (appears if waiting modal is minimized) -->
+    <div class="waiting-banner" id="waitingBanner" style="display: none;">
+        <span>⏳ Room: <b id="bannerRoomName" style="color: #fff;">lobby</b> — Select Mode or Invite Opponent</span>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-primary" onclick="startBotGame('normal')">🤖 Play vs AI Now</button>
+            <button class="btn btn-sm" id="bannerP2Btn" onclick="openPlayer2Window()">🪟 Launch P2 Window</button>
+            <button class="btn btn-sm" onclick="openModeModal()">📋 Mode Selection</button>
+        </div>
+    </div>
+
+    <!-- Main Game Table Arena -->
+    <main class="arena">
+        <!-- Opponent Player Area (Human or AI Bot) -->
+        <section class="player-zone opponent-zone">
+            <div class="player-meta">
+                <span class="player-name opponent" id="opponentNameLabel">👤 Opponent</span>
+                <div class="bot-speed-bar" id="botSpeedControls" style="display: none;">
+                    <span style="color: var(--text-muted); font-size: 0.72rem; font-weight: 800;">Speed:</span>
+                    <button class="speed-pill-btn" id="speedChillBtn" onclick="changeBotSpeed('easy')" title="Chill mode (3.5s delay)">🐢 Chill</button>
+                    <button class="speed-pill-btn" id="speedBalancedBtn" onclick="changeBotSpeed('normal')" title="Balanced human mode (2.3s delay)">⚡ Balanced</button>
+                    <button class="speed-pill-btn" id="speedProBtn" onclick="changeBotSpeed('hard')" title="Fast arcade mode (1.4s delay)">🔥 Pro</button>
+                </div>
+                <div class="stat-pill">
+                    <span>Total Left:</span>
+                    <span class="stat-value" id="oppTotalCards">26</span>
+                </div>
+                <div class="stat-pill">
+                    <span>Stock:</span>
+                    <span class="stat-value" id="oppStockCount" style="color: var(--accent-magenta);">21</span>
+                </div>
+                <div class="stock-indicator">
+                    <div class="stock-deck" id="oppStockDeck" title="Opponent Draw Stock">
+                        <span id="oppStockDeckNum">21</span>
+                    </div>
+                </div>
+            </div>
+            <div class="cards-row opponent-hand" id="opponentHandContainer"></div>
+        </section>
+
+        <!-- Central Spit Battleground -->
+        <section class="battleground">
+            <div class="spit-burst-banner" id="spitBurstBanner">💥 SPIT! CARDS FLIPPED!</div>
+            <div class="pile-wrapper">
+                <span class="pile-title">Pile 1 [Key Q]</span>
+                <div class="central-pile" id="centralPile1" 
+                     ondragover="handleDragOver(event, 1)" 
+                     ondragleave="handleDragLeave(event, 1)" 
+                     ondrop="handleDrop(event, 1)"
+                     onclick="handlePileClick(1)"></div>
+                <span class="stat-pill" style="font-size: 0.75rem;">
+                    Count: <b id="pile1Count" style="color: #fff; margin-left: 4px;">1</b>
+                </span>
+            </div>
+
+            <div class="spit-controls">
+                <button class="btn-spit" id="spitBtn" onclick="requestSpit()">⚡ SPIT!</button>
+                <div class="spit-status-text" id="spitStatusMsg">Both players must tap Spit when stuck</div>
+            </div>
+
+            <div class="pile-wrapper">
+                <span class="pile-title">Pile 2 [Key W/E]</span>
+                <div class="central-pile" id="centralPile2" 
+                     ondragover="handleDragOver(event, 2)" 
+                     ondragleave="handleDragLeave(event, 2)" 
+                     ondrop="handleDrop(event, 2)"
+                     onclick="handlePileClick(2)"></div>
+                <span class="stat-pill" style="font-size: 0.75rem;">
+                    Count: <b id="pile2Count" style="color: #fff; margin-left: 4px;">1</b>
+                </span>
+            </div>
+        </section>
+
+        <!-- Local Player Area -->
+        <section class="player-zone local-zone">
+            <div class="cards-row player-hand" id="localHandContainer"></div>
+            <div class="player-meta">
+                <span class="player-name local" id="localNameLabel">⭐ You (Player 1)</span>
+                <div class="stat-pill">
+                    <span>Your Total Cards:</span>
+                    <span class="stat-value" id="localTotalCards" style="color: var(--accent-cyan);">26</span>
+                </div>
+                <div class="stat-pill">
+                    <span>Your Stock:</span>
+                    <span class="stat-value" id="localStockCount" style="color: var(--accent-cyan);">21</span>
+                </div>
+                <div class="stock-indicator">
+                    <div class="stock-deck" id="localStockDeck" title="Your Draw Stock">
+                        <span id="localStockDeckNum">21</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer Status & Live Log Ticker -->
+    <footer class="game-bar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="status-pill status-waiting" id="gameStatusPill">Waiting for Opponent</span>
+            <span class="log-ticker" id="recentLogTicker">Welcome to Spit! Choose Solo vs AI or 2-Player to clash.</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; color: var(--text-muted);">
+            <span>Shortcuts: <b>1-5</b> Select | <b>Q / W</b> Play | <b>Space</b> SPIT!</span>
+        </div>
+    </footer>
+
+    <!-- Mode Selection / Matchmaker Modal -->
+    <div class="overlay active" id="waitingModal">
+        <div class="modal-card wide">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                <div style="text-align: left;">
+                    <span class="badge-arcade" style="margin-bottom: 6px; display: inline-block;">Arcade Matchmaker</span>
+                    <h2 class="modal-title" style="color: var(--accent-gold); margin-bottom: 2px;">SELECT GAME MODE</h2>
+                    <p style="color: var(--text-muted); font-size: 0.88rem;">Play solo against SpitBot or clash in 2-player multiplayer</p>
+                </div>
+                <button class="btn-close" onclick="closeModeModal()" title="Minimize to View Arena">✕</button>
+            </div>
+
+            <!-- Room Slots Status -->
+            <div class="lobby-status-row">
+                <div class="slot-pill">
+                    <span class="dot online"></span>
+                    <span id="slotP1Text">Player 1 (Host): Ready</span>
+                </div>
+                <div class="vs-badge" style="font-weight: 900; color: var(--accent-magenta);">VS</div>
+                <div class="slot-pill">
+                    <span class="dot waiting" id="slotP2Dot"></span>
+                    <span id="slotP2Text">Player 2: Waiting...</span>
+                </div>
+            </div>
+
+            <!-- Action Cards (Solo vs AI Bot & 2-Player Window) -->
+            <div class="action-grid">
+                <!-- Solo vs AI Bot -->
+                <div class="action-card featured">
+                    <div>
+                        <div class="action-card-header">
+                            <span class="action-icon">🤖</span>
+                            <span class="action-title">Solo Match (vs AI Bot)</span>
+                        </div>
+                        <p class="action-desc">
+                            Start immediately! The AI plays with realistic human speed and never auto-flips alone. Both players must call SPIT together to flip cards!
+                        </p>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px; font-size: 0.95rem;" onclick="startBotGame('normal')">
+                            ▶ Play vs SpitBot (Balanced ⚡)
+                        </button>
+                        <div class="diff-btn-group">
+                            <button class="btn btn-sm" style="flex: 1; justify-content: center;" onclick="startBotGame('easy')" title="Relaxed pacing (3.5s delay)">🐢 Chill</button>
+                            <button class="btn btn-sm btn-accent" style="flex: 1; justify-content: center;" onclick="startBotGame('hard')" title="Fast pacing (1.4s delay)">🔥 Pro</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2-Player Window Test -->
+                <div class="action-card" id="multiplayerActionCard">
+                    <div>
+                        <div class="action-card-header">
+                            <span class="action-icon">🪟</span>
+                            <span class="action-title">2-Player Multiplayer Test</span>
+                        </div>
+                        <p class="action-desc">
+                            Instantly test multiplayer in real-time! Open Player 2 side-by-side or in a new browser tab.
+                        </p>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px; font-size: 0.95rem;" onclick="openPlayer2Window('window')">
+                            🪟 Launch Player 2 Window
+                        </button>
+                        <button class="btn btn-sm" style="width: 100%; justify-content: center; padding: 8px;" onclick="openPlayer2Window('tab')">
+                            🔗 Open Player 2 (New Tab)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Share & Room Info Row -->
+            <div style="text-align: left; margin-top: 10px; background: rgba(3, 12, 7, 0.6); padding: 12px; border-radius: 12px; border: 1px dashed rgba(16, 185, 129, 0.3);">
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+                    <span>Room: <b id="roomCodeDisplay" style="color: var(--accent-cyan); font-family: monospace;">lobby</b></span>
+                    <span style="color: var(--text-muted);">Share with a friend on local Wi-Fi or another tab</span>
+                </div>
+                <div class="share-row">
+                    <input type="text" id="shareUrlInput" readonly class="share-input" />
+                    <button class="btn btn-primary" onclick="copyInviteLink()">📋 Copy URL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overhauled Victory & Defeat Modal -->
+    <div class="overlay" id="gameOverModal">
+        <div class="modal-card">
+            <div class="trophy-badge" id="gameOverIcon">🏆</div>
+            <h2 class="modal-title win" id="gameOverTitle">VICTORY!</h2>
+            <p class="modal-desc" id="gameOverDesc">
+                You cleared all your cards and conquered the table!
+            </p>
+
+            <!-- Detailed Match Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-box-title">⏱️ Match Duration</div>
+                    <div class="stat-box-val" id="statMatchTime">0:45</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-title">🃏 Cards Cleared</div>
+                    <div class="stat-box-val" id="statCardsCleared">26 / 26</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-title">👤 Opponent Cards</div>
+                    <div class="stat-box-val" id="statOppRemaining">12 Left</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-title">⚡ Match Mode</div>
+                    <div class="stat-box-val" id="statMatchMode" style="font-size: 1.05rem;">Balanced ⚡</div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px;">
+                <button class="btn btn-primary" style="flex: 1 1 100%; justify-content: center; padding: 14px; font-size: 1.05rem;" onclick="requestRematch()">
+                    ⚡ Play Rematch [↵ Enter]
+                </button>
+                <button class="btn" style="flex: 1; justify-content: center; padding: 12px; font-size: 0.95rem;" onclick="openModeModal()">
+                    📋 Select Mode
+                </button>
+                <button class="btn btn-accent" style="flex: 1; justify-content: center; padding: 12px; font-size: 0.95rem;" onclick="returnToDashboard()">
+                    🏠 Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- How to Play / Rules Modal -->
+    <div class="overlay" id="rulesModal">
+        <div class="modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h2 class="modal-title" style="color: var(--accent-cyan); font-size: 1.5rem; margin: 0;">HOW TO PLAY SPIT!</h2>
+                <button class="btn-close" onclick="toggleRulesModal()">✕</button>
+            </div>
+            <div style="text-align: left; font-size: 0.9rem; line-height: 1.6; color: var(--text-main);">
+                <p><b>🎯 Goal:</b> Be the first to empty all 26 cards (your 5 hand cards and your 21 draw stock cards)!</p>
+                <br/>
+                <p><b>⚡ Fast-Paced Card Placement (+/- 1 Rank):</b></p>
+                <p style="color: var(--accent-gold);">
+                    There are no turns! Play as fast as you can. Play any card from your 5-card hand that is 1 above or 1 below either central pile.
+                </p>
+                <p style="color: var(--accent-cyan); margin-top: 4px;">
+                    <b>Ace wraps with King and 2!</b> (e.g. King on Ace, Ace on King, 2 on Ace, Ace on 2).
+                </p>
+                <br/>
+                <p><b>🔄 Simultaneous Spit Flipping:</b></p>
+                <p style="color: var(--accent-gold);">
+                    If neither player has a valid move, tap <b>SPIT!</b> (or press Space). <b>Cards will ONLY flip when BOTH players have called SPIT!</b> If your opponent or SpitBot calls Spit first, your Spit button will flash—tap it to flip together!
+                </p>
+                <br/>
+                <p><b>⌨️ Controls &amp; Shortcuts:</b></p>
+                <ul style="margin-left: 20px; color: var(--text-muted); font-size: 0.85rem;">
+                    <li><b>Click &amp; Play:</b> Click a card in your hand, then click Pile 1 or Pile 2.</li>
+                    <li><b>Drag &amp; Drop:</b> Drag any hand card directly onto Pile 1 or 2.</li>
+                    <li><b>Keys 1, 2, 3, 4, 5:</b> Select card 1 through 5 in hand.</li>
+                    <li><b>Key Q:</b> Play selected card to Pile 1.</li>
+                    <li><b>Key W or E:</b> Play selected card to Pile 2.</li>
+                    <li><b>Space or S:</b> Tap SPIT!</li>
+                    <li><b>Enter:</b> Request Rematch on game over.</li>
+                </ul>
+            </div>
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 18px;" onclick="toggleRulesModal()">
+                Understood, Let's Play!
+            </button>
+        </div>
+    </div>
+
+    <!-- Client Logic & Socket.IO Handler -->
+    <script>
+        // --- Web Audio Synthesizer Engine ---
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        this.ctx = new AudioCtx();
+                    }
+                }
+            }
+            playSnap() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(420, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.09);
+            }
+            playSpitFlip() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                [320, 480, 640].forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.06);
+                    osc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + i * 0.06 + 0.1);
+                    gain.gain.setValueAtTime(0.25, now + i * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.06 + 0.1);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.06);
+                    osc.stop(now + i * 0.06 + 0.11);
+                });
+            }
+            playInvalid() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(90, this.ctx.currentTime + 0.18);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.19);
+            }
+            playBeep(freq = 440) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.16);
+            }
+            playFanfare() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.12);
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime + idx * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.12 + 0.35);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.12);
+                    osc.stop(this.ctx.currentTime + idx * 0.12 + 0.36);
+                });
+            }
+        }
+        const sound = new SoundFX();
+
+        function toggleAudio() {
+            sound.enabled = !sound.enabled;
+            const icon = document.getElementById('audioIcon');
+            icon.textContent = sound.enabled ? '🔊' : '🔇';
+            showToast(sound.enabled ? 'Sound FX Enabled' : 'Sound FX Muted', 'info');
+        }
+
+        // --- Room & Player URL Parameters ---
+        const urlParams = new URLSearchParams(window.location.search);
+        let roomId = urlParams.get('room') || 'lobby';
+        let playerName = urlParams.get('player') || '';
+        const isPlayer2 = (playerName.toLowerCase().includes('player 2') || playerName.toLowerCase().includes('p2'));
+
+        document.getElementById('roomCodeDisplay').textContent = roomId;
+        document.getElementById('bannerRoomName').textContent = roomId;
+        const fullShareUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(roomId)}`;
+        document.getElementById('shareUrlInput').value = fullShareUrl;
+
+        // Clean launcher button if already Player 2
+        if (isPlayer2) {
+            const hBtn = document.getElementById('headerP2Btn');
+            const bBtn = document.getElementById('bannerP2Btn');
+            if (hBtn) hBtn.style.display = 'none';
+            if (bBtn) bBtn.style.display = 'none';
+            const mpCard = document.getElementById('multiplayerActionCard');
+            if (mpCard) {
+                mpCard.innerHTML = `
+                    <div class="action-card-header">
+                        <span class="action-icon">🟢</span>
+                        <span class="action-title">Joined as Player 2</span>
+                    </div>
+                    <p class="action-desc">Connected to room <b>${roomId}</b>. Waiting for Host or match starts automatically!</p>
+                `;
+            }
+        }
+
+        // --- Socket.IO Client Initialization ---
+        const socket = io();
+        let currentRole = null;
+        let selectedHandCardId = null;
+        let lastKnownStatus = 'waiting';
+        let isDraggingCardId = null;
+        let modalManuallyClosed = isPlayer2;
+        let gameOverDismissed = false;
+
+        if (isPlayer2) {
+            document.getElementById('waitingModal').classList.remove('active');
+        }
+
+        socket.on('connect', () => {
+            const badge = document.getElementById('connectionBadge');
+            badge.textContent = '● Online';
+            badge.style.color = 'var(--accent-emerald)';
+            socket.emit('join_game', { room: roomId, name: playerName });
+        });
+
+        socket.on('disconnect', () => {
+            const badge = document.getElementById('connectionBadge');
+            badge.textContent = '○ Offline';
+            badge.style.color = 'var(--accent-ruby)';
+        });
+
+        socket.on('game_state', (state) => {
+            updateUI(state);
+        });
+
+        socket.on('invalid_move', (data) => {
+            sound.playInvalid();
+            showToast(data.reason || 'Invalid Move!', 'error');
+            if (data.card_id) {
+                const el = document.getElementById(`card-${data.card_id}`);
+                if (el) {
+                    el.classList.add('shake');
+                    setTimeout(() => el.classList.remove('shake'), 480);
+                }
+            }
+            deselectCard();
+        });
+
+        // --- Update UI with Game State ---
+        function updateUI(state) {
+            currentRole = state.role;
+            const isPlaying = state.status === 'playing';
+
+            // Status Pill
+            const statusPill = document.getElementById('gameStatusPill');
+            statusPill.className = `status-pill status-${state.status}`;
+
+            if (state.status === 'waiting') {
+                statusPill.textContent = state.is_bot ? 'AI Bot Ready' : 'Waiting for Opponent...';
+                if (!modalManuallyClosed && !isPlayer2) {
+                    document.getElementById('waitingModal').classList.add('active');
+                    document.getElementById('waitingBanner').style.display = 'none';
+                } else {
+                    document.getElementById('waitingBanner').style.display = 'flex';
+                }
+            } else if (state.status === 'countdown') {
+                gameOverDismissed = false;
+                statusPill.textContent = 'Starting in ' + state.countdown + '...';
+                document.getElementById('waitingModal').classList.remove('active');
+                document.getElementById('waitingBanner').style.display = 'none';
+            } else if (state.status === 'playing') {
+                gameOverDismissed = false;
+                statusPill.textContent = state.is_bot ? 'Match vs SpitBot!' : 'Match in Progress!';
+                document.getElementById('waitingModal').classList.remove('active');
+                document.getElementById('gameOverModal').classList.remove('active');
+                document.getElementById('waitingBanner').style.display = 'none';
+            } else if (state.status === 'game_over') {
+                statusPill.textContent = 'Game Over';
+            }
+
+            // Big Countdown Banner
+            const countBanner = document.getElementById('countdownBanner');
+            if (state.status === 'countdown' && state.countdown > 0) {
+                countBanner.textContent = state.countdown;
+                countBanner.classList.add('show');
+                sound.playBeep(440 + (3 - state.countdown) * 130);
+            } else {
+                countBanner.classList.remove('show');
+            }
+
+            if (lastKnownStatus !== 'playing' && state.status === 'playing') {
+                sound.playBeep(880);
+                showToast('MATCH START! Play fast!', 'success');
+            }
+            lastKnownStatus = state.status;
+
+            // Lobby Player Slot Status
+            const p1Text = document.getElementById('slotP1Text');
+            const p2Text = document.getElementById('slotP2Text');
+            const p2Dot = document.getElementById('slotP2Dot');
+
+            p1Text.textContent = `${state.p1_name || 'Player 1'} (Host)`;
+            if (state.p2_connected || state.is_bot) {
+                p2Text.textContent = state.p2_name || 'Player 2';
+                p2Dot.className = 'dot online';
+            } else {
+                p2Text.textContent = 'Player 2: Waiting...';
+                p2Dot.className = 'dot waiting';
+            }
+
+            // Player Zone Labels
+            const localName = state.role === 'p1' ? `⭐ ${state.p1_name} (You)` :
+                              state.role === 'p2' ? `⭐ ${state.p2_name} (You)` : '👀 Spectating';
+            const oppName = state.role === 'p1' ? (state.is_bot ? `${state.p2_name}` : `👤 ${state.p2_name}`) :
+                            state.role === 'p2' ? `👤 ${state.p1_name}` : '👤 Players';
+
+            document.getElementById('localNameLabel').textContent = localName;
+            document.getElementById('opponentNameLabel').textContent = oppName;
+
+            // Card Counts
+            document.getElementById('localTotalCards').textContent = state.your_total_cards;
+            document.getElementById('localStockCount').textContent = state.your_stock_count;
+            document.getElementById('localStockDeckNum').textContent = state.your_stock_count;
+
+            document.getElementById('oppTotalCards').textContent = state.opponent_total_cards;
+            document.getElementById('oppStockCount').textContent = state.opponent_stock_count;
+            document.getElementById('oppStockDeckNum').textContent = state.opponent_stock_count;
+
+            // Central Piles
+            renderCentralPile(1, state.pile1_top, state.pile1_count);
+            renderCentralPile(2, state.pile2_top, state.pile2_count);
+
+            // Hands
+            renderLocalHand(state.your_hand);
+            renderOpponentHand(state.opponent_hand, state.is_bot);
+
+            // Dynamic Bot Speed Switcher Sync
+            const botSpeedBar = document.getElementById('botSpeedControls');
+            if (state.is_bot && isPlaying) {
+                botSpeedBar.style.display = 'inline-flex';
+                document.getElementById('speedChillBtn').classList.toggle('active', state.bot_difficulty === 'easy');
+                document.getElementById('speedBalancedBtn').classList.toggle('active', state.bot_difficulty === 'normal');
+                document.getElementById('speedProBtn').classList.toggle('active', state.bot_difficulty === 'hard');
+            } else {
+                botSpeedBar.style.display = 'none';
+            }
+
+            // Spit Button State - Strict Simultaneous Feedback
+            const spitBtn = document.getElementById('spitBtn');
+            const spitMsg = document.getElementById('spitStatusMsg');
+            spitBtn.disabled = !isPlaying;
+            spitBtn.classList.remove('ready', 'opp-ready');
+            spitMsg.classList.remove('urgent');
+
+            if (state.your_spit && !state.opp_spit) {
+                // You called spit, waiting for opponent/bot
+                spitBtn.classList.add('ready');
+                spitBtn.textContent = '⏳ READY (1/2)';
+                spitMsg.textContent = state.is_bot 
+                    ? 'Waiting for SpitBot to call SPIT...' 
+                    : 'Waiting for opponent to tap SPIT...';
+            } else if (!state.your_spit && state.opp_spit) {
+                // Opponent or bot called spit, waiting for YOU!
+                spitBtn.classList.add('opp-ready');
+                spitBtn.textContent = '⚡ FLIP READY! (1/2)';
+                spitMsg.classList.add('urgent');
+                spitMsg.textContent = state.is_bot 
+                    ? '⚠️ SpitBot is stuck & called SPIT! Tap now to flip!' 
+                    : '⚠️ Opponent called SPIT! Tap now to flip together!';
+            } else {
+                spitBtn.textContent = '⚡ SPIT!';
+                spitMsg.textContent = 'Both players must tap Spit when stuck';
+            }
+
+            // Log ticker & Spit Flip Celebration Trigger
+            if (state.log && state.log.length > 0) {
+                const latestLog = state.log[state.log.length - 1];
+                document.getElementById('recentLogTicker').textContent = latestLog;
+                if (latestLog.includes('SPIT!') && (latestLog.includes('flip') || latestLog.includes('Simultaneous flip') || latestLog.includes('Flipped'))) {
+                    triggerSpitFlipAnimation();
+                }
+            }
+
+            // Game Over Modal Handling with Rich Victory Stats
+            if (state.status === 'game_over' && !gameOverDismissed) {
+                const modal = document.getElementById('gameOverModal');
+                const title = document.getElementById('gameOverTitle');
+                const desc = document.getElementById('gameOverDesc');
+                const icon = document.getElementById('gameOverIcon');
+                modal.classList.add('active');
+
+                // Format match duration
+                const duration = state.match_duration || 0;
+                const mins = Math.floor(duration / 60);
+                const secs = duration % 60;
+                const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+                document.getElementById('statMatchTime').textContent = timeStr;
+
+                const diffLabels = { 'easy': 'Chill 🐢', 'normal': 'Balanced ⚡', 'hard': 'Pro 🔥' };
+                const modeStr = state.is_bot ? `SpitBot (${diffLabels[state.bot_difficulty] || 'Pro'})` : '2-Player Clash';
+                document.getElementById('statMatchMode').textContent = modeStr;
+
+                if (state.winner === state.role) {
+                    title.textContent = 'VICTORY!';
+                    title.className = 'modal-title win';
+                    icon.textContent = '🏆';
+                    desc.textContent = state.is_bot 
+                        ? 'Incredible reflexes! You defeated SpitBot and emptied all 26 cards!'
+                        : 'Unbelievable speed! You cleared your deck before your opponent!';
+                    document.getElementById('statCardsCleared').textContent = '26 / 26 (100%)';
+                    document.getElementById('statOppRemaining').textContent = `${state.opponent_total_cards} cards left`;
+                    sound.playFanfare();
+                    launchConfetti();
+                } else {
+                    title.textContent = 'DEFEAT!';
+                    title.className = 'modal-title lose';
+                    icon.textContent = '💀';
+                    desc.textContent = state.is_bot
+                        ? '🤖 SpitBot cleared its deck first! Challenge it to a rematch!'
+                        : 'Opponent was faster this round! Hit Rematch to clash again!';
+                    document.getElementById('statCardsCleared').textContent = `${26 - state.your_total_cards} / 26`;
+                    document.getElementById('statOppRemaining').textContent = '0 cards left (Winner)';
+                    sound.playInvalid();
+                }
+            }
+        }
+
+        // --- Card Element Factory ---
+        function createCardElement(card, isLocal = false, keyHint = null) {
+            const div = document.createElement('div');
+            div.className = `card ${card.color}`;
+            div.id = `card-${card.id}`;
+            div.dataset.cardId = card.id;
+            div.dataset.rank = card.rank;
+
+            let hintHtml = '';
+            if (keyHint) {
+                hintHtml = `<div class="card-key-hint">[${keyHint}]</div>`;
+            }
+
+            div.innerHTML = `
+                <div class="card-corner top">
+                    <span>${card.label}</span>
+                    <span>${card.symbol}</span>
+                </div>
+                <div class="card-center-symbol">${card.symbol}</div>
+                <div class="card-corner bottom">
+                    <span>${card.label}</span>
+                    <span>${card.symbol}</span>
+                </div>
+                ${hintHtml}
+            `;
+
+            if (isLocal) {
+                div.draggable = true;
+                div.addEventListener('dragstart', (e) => handleDragStart(e, card.id));
+                div.addEventListener('dragend', handleDragEnd);
+                div.addEventListener('click', () => handleCardClick(card.id));
+            }
+
+            return div;
+        }
+
+        // --- Render Hands & Piles ---
+        function renderLocalHand(hand) {
+            const container = document.getElementById('localHandContainer');
+            container.innerHTML = '';
+            if (!hand || hand.length === 0) return;
+            hand.forEach((card, idx) => {
+                const el = createCardElement(card, true, idx < 5 ? (idx + 1) : null);
+                if (selectedHandCardId === card.id) {
+                    el.classList.add('selected');
+                }
+                container.appendChild(el);
+            });
+        }
+
+        function renderOpponentHand(hand, isBot = false) {
+            const container = document.getElementById('opponentHandContainer');
+            container.innerHTML = '';
+            if (!hand || hand.length === 0) return;
+            hand.forEach(card => {
+                const el = createCardElement(card, false);
+                container.appendChild(el);
+            });
+        }
+
+        function renderCentralPile(pileNum, topCard, count) {
+            const pileEl = document.getElementById(`centralPile${pileNum}`);
+            const countEl = document.getElementById(`pile${pileNum}Count`);
+            countEl.textContent = count;
+            pileEl.innerHTML = '';
+
+            if (topCard) {
+                const cardEl = createCardElement(topCard, false);
+                cardEl.style.cursor = 'pointer';
+                pileEl.appendChild(cardEl);
+            } else {
+                pileEl.innerHTML = `<span style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700;">Empty</span>`;
+            }
+        }
+
+        // --- Card Interactions (Click & Drag) ---
+        function handleCardClick(cardId) {
+            if (selectedHandCardId === cardId) {
+                deselectCard();
+            } else {
+                selectedHandCardId = cardId;
+                document.querySelectorAll('.player-hand .card').forEach(c => {
+                    c.classList.toggle('selected', c.dataset.cardId === cardId);
+                });
+                sound.playSnap();
+                document.getElementById('centralPile1').classList.add('active-target');
+                document.getElementById('centralPile2').classList.add('active-target');
+            }
+        }
+
+        function deselectCard() {
+            selectedHandCardId = null;
+            document.querySelectorAll('.player-hand .card').forEach(c => c.classList.remove('selected'));
+            document.getElementById('centralPile1').classList.remove('active-target');
+            document.getElementById('centralPile2').classList.remove('active-target');
+        }
+
+        function handlePileClick(pileNum) {
+            if (!selectedHandCardId) return;
+            executePlay(selectedHandCardId, pileNum);
+            deselectCard();
+        }
+
+        function handleDragStart(e, cardId) {
+            isDraggingCardId = cardId;
+            e.dataTransfer.setData('text/plain', cardId);
+            e.dataTransfer.effectAllowed = 'move';
+            sound.playSnap();
+            document.getElementById('centralPile1').classList.add('active-target');
+            document.getElementById('centralPile2').classList.add('active-target');
+        }
+
+        function handleDragEnd() {
+            isDraggingCardId = null;
+            document.getElementById('centralPile1').classList.remove('active-target', 'drag-hover');
+            document.getElementById('centralPile2').classList.remove('active-target', 'drag-hover');
+        }
+
+        function handleDragOver(e, pileNum) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const pile = document.getElementById(`centralPile${pileNum}`);
+            pile.classList.add('drag-hover');
+        }
+
+        function handleDragLeave(e, pileNum) {
+            const pile = document.getElementById(`centralPile${pileNum}`);
+            pile.classList.remove('drag-hover');
+        }
+
+        function handleDrop(e, pileNum) {
+            e.preventDefault();
+            const pile = document.getElementById(`centralPile${pileNum}`);
+            pile.classList.remove('drag-hover');
+            const cardId = e.dataTransfer.getData('text/plain') || isDraggingCardId;
+            if (cardId) {
+                executePlay(cardId, pileNum);
+            }
+            deselectCard();
+        }
+
+        function executePlay(cardId, pileNum) {
+            socket.emit('play_card', {
+                room: roomId,
+                card_id: cardId,
+                pile: pileNum
+            });
+            sound.playSnap();
+        }
+
+        function requestSpit() {
+            sound.playSpitFlip();
+            socket.emit('request_spit', { room: roomId });
+        }
+
+        function requestRematch() {
+            sound.playSnap();
+            document.getElementById('gameOverModal').classList.remove('active');
+            socket.emit('rematch', { room: roomId });
+        }
+
+        // --- Single Player vs AI Bot Trigger ---
+        function startBotGame(difficulty = 'normal') {
+            sound.playSnap();
+            closeModeModal();
+            socket.emit('start_bot_game', {
+                room: roomId,
+                difficulty: difficulty,
+                name: playerName || 'Player 1'
+            });
+            showToast(`Starting clash vs SpitBot (${difficulty.toUpperCase()})...`, 'success');
+        }
+
+        function changeBotSpeed(diff) {
+            sound.playSnap();
+            socket.emit('set_bot_difficulty', { room: roomId, difficulty: diff });
+            const label = { 'easy': 'Chill 🐢 (3.5s)', 'normal': 'Balanced ⚡ (2.3s)', 'hard': 'Pro 🔥 (1.4s)' }[diff] || 'Normal';
+            showToast(`SpitBot speed set to ${label}!`, 'info');
+        }
+
+        let lastSpitFlipAnimTime = 0;
+        function triggerSpitFlipAnimation() {
+            const now = Date.now();
+            if (now - lastSpitFlipAnimTime < 1500) return;
+            lastSpitFlipAnimTime = now;
+            sound.playSpitFlip();
+            const banner = document.getElementById('spitBurstBanner');
+            if (banner) {
+                banner.classList.add('active');
+                setTimeout(() => banner.classList.remove('active'), 1200);
+            }
+        }
+
+        // --- 2-Player Window Launcher ---
+        function openPlayer2Window(target = 'window') {
+            sound.playSnap();
+            const url = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(roomId)}&player=Player+2`;
+            if (target === 'tab') {
+                window.open(url, '_blank');
+                showToast('Opened Player 2 in a new browser tab!', 'success');
+                return;
+            }
+            const win = window.open(url, 'Spit_Multiplayer_P2_Window', 'width=680,height=850,left=700,top=40');
+            if (!win || win.closed || typeof win.closed === 'undefined') {
+                window.open(url, '_blank');
+                showToast('Popup blocked by browser. Opened Player 2 in a new tab instead!', 'info');
+            } else {
+                showToast('Player 2 test window opened! Position both side-by-side.', 'success');
+            }
+        }
+
+        // --- Mode & Waiting Modal Controls ---
+        function returnToDashboard() {
+            sound.playSnap();
+            window.location.href = window.location.origin + window.location.pathname;
+        }
+
+        function openModeModal() {
+            sound.playSnap();
+            modalManuallyClosed = false;
+            gameOverDismissed = true;
+            const gameOverModal = document.getElementById('gameOverModal');
+            if (gameOverModal) {
+                gameOverModal.classList.remove('active');
+            }
+            document.getElementById('waitingModal').classList.add('active');
+            document.getElementById('waitingBanner').style.display = 'none';
+            if (typeof socket !== 'undefined' && socket.connected) {
+                socket.emit('reset_to_waiting', { room: roomId });
+            }
+        }
+
+        function closeModeModal() {
+            modalManuallyClosed = true;
+            document.getElementById('waitingModal').classList.remove('active');
+            if (lastKnownStatus === 'waiting') {
+                document.getElementById('waitingBanner').style.display = 'flex';
+            }
+        }
+
+        function toggleRulesModal() {
+            sound.playSnap();
+            const modal = document.getElementById('rulesModal');
+            modal.classList.toggle('active');
+        }
+
+        function copyInviteLink() {
+            const url = window.location.origin + window.location.pathname + '?room=' + encodeURIComponent(roomId);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('Room link copied! Paste in another tab to play Player 2.', 'success');
+                }).catch(() => {
+                    prompt('Copy this room URL to invite Player 2:', url);
+                });
+            } else {
+                prompt('Copy this room URL to invite Player 2:', url);
+            }
+        }
+
+        // --- Keyboard Shortcuts ---
+        window.addEventListener('keydown', (e) => {
+            const key = e.key;
+            if (['1', '2', '3', '4', '5'].includes(key)) {
+                const idx = parseInt(key) - 1;
+                const handCards = document.querySelectorAll('.player-hand .card');
+                if (handCards[idx]) {
+                    handleCardClick(handCards[idx].dataset.cardId);
+                }
+            }
+            if (key.toLowerCase() === 'q') {
+                handlePileClick(1);
+            } else if (key.toLowerCase() === 'w' || key.toLowerCase() === 'e') {
+                handlePileClick(2);
+            } else if (key === ' ' || key.toLowerCase() === 's') {
+                e.preventDefault();
+                requestSpit();
+            } else if (key === 'Enter') {
+                const gameOverModal = document.getElementById('gameOverModal');
+                if (gameOverModal && gameOverModal.classList.contains('active')) {
+                    e.preventDefault();
+                    requestRematch();
+                }
+            } else if (key === 'Escape') {
+                document.getElementById('rulesModal').classList.remove('active');
+                closeModeModal();
+            }
+        });
+
+        // --- Toast Notification Display ---
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('visible'), 10);
+            setTimeout(() => {
+                toast.classList.remove('visible');
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        // --- Confetti Particle System for Victory ---
+        function launchConfetti() {
+            const canvas = document.getElementById('confettiCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#00f2fe', '#ff007f', '#ffb703', '#10b981', '#ffffff', '#a855f7'];
+
+            for (let i = 0; i < 150; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 20,
+                    vy: (Math.random() - 0.7) * 20,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rot: Math.random() * 360,
+                    rotSpeed: (Math.random() - 0.5) * 12,
+                    alpha: 1
+                });
+            }
+
+            function animateConfetti() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let alive = false;
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.35; // gravity
+                    p.rot += p.rotSpeed;
+                    p.alpha -= 0.007;
+
+                    if (p.alpha > 0) {
+                        alive = true;
+                        ctx.save();
+                        ctx.globalAlpha = p.alpha;
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate((p.rot * Math.PI) / 180);
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.6);
+                        ctx.restore();
+                    }
+                });
+
+                if (alive) {
+                    requestAnimationFrame(animateConfetti);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            animateConfetti();
+        }
+    </script>
+</body>
+</html>

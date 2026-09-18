@@ -1,0 +1,7 @@
+[tool.pyrefly]
+python-interpreter-path = "C:/Users/Risav Chanda/.gemini/antigravity/scratch/spit-card-game/venv/Scripts/python.exe"
+
+search-path = [
+    "C:/Users/Risav Chanda/.gemini/antigravity/scratch/spit-card-game",
+    "C:/Users/Risav Chanda/.gemini/antigravity/scratch/spit-card-game/venv/Lib/site-packages"
+]
