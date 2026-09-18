@@ -339,10 +339,25 @@ def get_or_create_room(room_id) -> GameRoom:
             rooms[room_id] = GameRoom(room_id)
         return rooms[room_id]
 
+import socket
+
+def get_local_ip() -> str:
+    """Detects the host machine's local LAN IPv4 address for multi-device network play."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
 # --- Routes ---
 @app.route('/')
 def index():
-    return render_template('index.html')
+    local_ip = get_local_ip()
+    port = int(os.environ.get('PORT', 5000))
+    return render_template('index.html', local_ip=local_ip, port=port)
 
 @app.route('/favicon.ico')
 def favicon():
@@ -353,6 +368,28 @@ def favicon():
 def get_request_sid() -> str:
     """Safely retrieves socket session ID injected into request context by Flask-SocketIO"""
     return getattr(request, 'sid', '')
+
+def clean_player_from_other_rooms(sid: str, except_room_id: str = None):
+    """Ensures a client session only exists in one room at a time, preventing cross-room state conflicts."""
+    if not sid:
+        return
+    with rooms_lock:
+        for r_id, r in list(rooms.items()):
+            if r_id != except_room_id:
+                with r.lock:
+                    if sid in r.players:
+                        r.players.pop(sid, None)
+                        if r.p1_sid == sid:
+                            r.p1_sid = None
+                            if r.is_bot_p2:
+                                r.remove_bot()
+                        elif r.p2_sid == sid:
+                            r.p2_sid = None
+                        try:
+                            leave_room(r_id, sid=sid)
+                        except Exception:
+                            pass
+                        sync_room_state(r)
 
 @socketio.on('create_room')
 def on_create_room(data):
@@ -367,6 +404,8 @@ def on_create_room(data):
             code = str(uuid.uuid4())[:6]
         room = get_or_create_room(code)
 
+    clean_player_from_other_rooms(sid, except_room_id=code)
+
     with room.lock:
         join_room(code)
         room.p1_sid = sid
@@ -379,9 +418,14 @@ def on_create_room(data):
 @socketio.on('join_game')
 def on_join(data):
     sid = get_request_sid()
-    room_id = str(data.get('room') or 'lobby').strip()
+    room_id = str(data.get('room') or '').strip()
     player_name = str(data.get('name') or '').strip()
     join_only = bool(data.get('join_only', False))
+
+    if not room_id:
+        room_id = 'lobby'
+
+    clean_player_from_other_rooms(sid, except_room_id=room_id)
 
     with rooms_lock:
         room_exists = room_id in rooms
@@ -446,8 +490,13 @@ def start_countdown(room):
             room.status = 'countdown'
             room.reset_game()
             room.status = 'countdown'
+            room.countdown_val = 3
 
-        for count in [3, 2, 1]:
+        # Immediate broadcast of countdown start so clients react with zero delay
+        sync_room_state(room)
+        time.sleep(1.0)
+
+        for count in [2, 1]:
             with room.lock:
                 room.countdown_val = count
             sync_room_state(room)

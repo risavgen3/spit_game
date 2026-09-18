@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SPIT! Arcade Card Clash</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🃏</text></svg>">
 
@@ -54,26 +54,42 @@
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden !important;
+            overscroll-behavior: none !important;
+            -webkit-overflow-scrolling: auto;
+            touch-action: manipulation;
+            background-color: #030d07;
+        }
+
         .hidden {
             display: none !important;
         }
 
         body {
-            /* Premium Emerald Casino Felt with Ambient Cyber Vignette */
+            /* Seamless Emerald Casino Felt with Ambient Cyber Vignette */
             background: radial-gradient(ellipse at 50% 28%, var(--felt-table-center) 0%, var(--felt-table-mid) 50%, var(--felt-table-edge) 100%);
-            background-attachment: fixed;
+            background-size: cover;
             color: var(--text-main);
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
-            position: relative;
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100dvh;
+            max-height: 100dvh;
+            overflow: hidden;
         }
 
-        /* Felt texture subtle ambient overlay */
+        /* Felt texture subtle ambient overlay - absolute within fixed body */
         body::before {
             content: '';
-            position: fixed;
+            position: absolute;
             inset: 0;
             background-image: 
                 radial-gradient(ellipse at 50% 0%, rgba(0, 242, 254, 0.08) 0%, transparent 60%),
@@ -347,6 +363,8 @@
                 0 8px 24px rgba(0, 0, 0, 0.55);
             transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.2s ease;
             transform-origin: center bottom;
+            touch-action: none;
+            -webkit-touch-callout: none;
         }
 
         /* Inner ornamental border inset */
@@ -1285,11 +1303,12 @@
                                    placeholder="• • • • • •" class="digit-code-input" style="font-size: 1.15rem; padding: 7px 10px; width: 58%;"
                                    oninput="this.value = this.value.replace(/\D/g, '').slice(0, 6);"
                                    onkeydown="if(event.key==='Enter') joinWithCode()" />
-                            <button class="btn btn-primary" style="flex: 1; justify-content: center; padding: 8px 10px; font-size: 0.9rem; font-weight: 700;" onclick="joinWithCode()">
+                            <button class="btn btn-primary" id="btnJoinRoom" style="flex: 1; justify-content: center; padding: 8px 10px; font-size: 0.9rem; font-weight: 700;" onclick="joinWithCode()">
                                 ⚡ Join Match
                             </button>
                         </div>
                         <div id="joinCodeError" style="color: var(--accent-ruby); font-size: 0.74rem; margin-top: 4px; min-height: 16px;"></div>
+                        <div id="joinRoomStatus" style="display: none; font-size: 0.8rem; color: var(--accent-cyan); margin-top: 6px; text-align: center; font-weight: 700; background: rgba(0, 242, 254, 0.08); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(0, 242, 254, 0.25);"></div>
                     </div>
                 </div>
             </div>
@@ -1304,6 +1323,7 @@
                     <input type="text" id="shareUrlInput" readonly class="share-input" />
                     <button class="btn btn-primary" onclick="copyInviteLink()">📋 Copy URL</button>
                 </div>
+                <div id="lanConnectHelp" style="font-size: 0.74rem; color: var(--accent-gold); margin-top: 8px; display: none; line-height: 1.4;"></div>
             </div>
 
             <!-- Backwards-compatible Login container -->
@@ -1396,15 +1416,22 @@
 
     <!-- Client Logic & Socket.IO Handler -->
     <script>
-        // Explicitly allow polling fallback for Render proxy compatibility
+        // Injected host server networking variables from Flask
+        const SERVER_LAN_IP = "{{ local_ip }}";
+        const SERVER_PORT = "{{ port }}";
+
+        // Explicitly allow polling fallback for Render proxy and mobile LAN compatibility
         const socket = io({
             transports: ['polling', 'websocket'],
-            upgrade: true
+            upgrade: true,
+            reconnection: true,
+            reconnectionAttempts: 20,
+            reconnectionDelay: 1000
         });
 
         let selectedCharAt = null;
-        let currentRoom = 'lobby';
-        let roomId = 'lobby';
+        let currentRoom = '';
+        let roomId = '';
         let playerName = '';
         window.currentRoom = currentRoom;
         window.roomId = roomId;
@@ -1429,9 +1456,22 @@
             const bannerRoomName = document.getElementById('bannerRoomName');
             if (bannerRoomName) bannerRoomName.textContent = code;
 
+            // Generate full share URL with reachable LAN IP if accessed on localhost or loopback
+            let baseOrigin = window.location.origin;
+            if (baseOrigin.includes('localhost') || baseOrigin.includes('127.0.0.1')) {
+                baseOrigin = `http://${SERVER_LAN_IP}:${SERVER_PORT}`;
+            }
+            const fullShareUrl = `${baseOrigin}${window.location.pathname}?room=${encodeURIComponent(code)}`;
+
             const shareUrlInput = document.getElementById('shareUrlInput');
             if (shareUrlInput) {
-                shareUrlInput.value = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(code)}`;
+                shareUrlInput.value = fullShareUrl;
+            }
+
+            const lanHelp = document.getElementById('lanConnectHelp');
+            if (lanHelp && code && code !== 'lobby') {
+                lanHelp.style.display = 'block';
+                lanHelp.innerHTML = `📱 <b>2nd Device / Phone:</b> Open <b style="color: var(--accent-cyan); font-family: monospace;">${baseOrigin}</b> and enter code <b style="color: var(--accent-gold); font-family: monospace; font-size: 0.9rem;">${code}</b>`;
             }
 
             const roomBadge = document.getElementById('room-badge');
@@ -1442,6 +1482,7 @@
             if (typeof sound !== 'undefined') sound.playSnap();
             const code = Math.floor(100000 + Math.random() * 900000).toString();
             updateRoomDisplays(code);
+            window.history.replaceState({}, '', `?room=${encodeURIComponent(code)}`);
 
             const disp = document.getElementById('displayCreatedCode');
             if (disp) disp.textContent = code;
@@ -1459,7 +1500,8 @@
 
         function copyRoomCodeOnly() {
             if (typeof sound !== 'undefined') sound.playSnap();
-            const code = currentRoom || roomId || 'lobby';
+            const code = currentRoom || roomId || '';
+            if (!code) return;
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(code).then(() => {
                     showToast(`Room code ${code} copied to clipboard!`, 'success');
@@ -1475,6 +1517,8 @@
             if (typeof sound !== 'undefined') sound.playSnap();
             const input = document.getElementById('joinRoomCodeInput');
             const errDiv = document.getElementById('joinCodeError');
+            const statusDiv = document.getElementById('joinRoomStatus');
+            const joinBtn = document.getElementById('btnJoinRoom');
             if (errDiv) errDiv.textContent = '';
 
             const rawVal = input ? input.value.trim() : '';
@@ -1492,6 +1536,17 @@
             }
 
             updateRoomDisplays(code);
+            window.history.replaceState({}, '', `?room=${encodeURIComponent(code)}`);
+
+            if (joinBtn) {
+                joinBtn.disabled = true;
+                joinBtn.innerHTML = '⏳ Joining...';
+            }
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = `Connecting to Room ${code}...`;
+            }
+
             const name = getPlayerName() || 'Player 2';
             socket.emit('join_game', { name: name, room: code, join_only: true });
             showToast(`Connecting to Room ${code}...`, 'info');
@@ -1516,23 +1571,58 @@
         }
         autoDetectRoom();
 
-        // Auto-detect room from URL query parameters on load
-        window.addEventListener('DOMContentLoaded', () => {
-            autoDetectRoom();
-            
-            // Connection status indicators
-            socket.on('connect', () => {
-                console.log('Connected to server!');
-            });
-            socket.on('disconnect', () => {
-                console.log('Disconnected from server.');
-            });
+        // Single Unified Socket Connection Handlers
+        socket.on('connect', () => {
+            console.log('Connected to server! Socket ID:', socket.id);
+            const badge = document.getElementById('connectionBadge');
+            if (badge) {
+                badge.textContent = '● Online';
+                badge.style.color = 'var(--accent-emerald)';
+            }
+            // If room is specified in URL query (e.g. ?room=482910 from invite) or was already set
+            const urlParams = new URLSearchParams(window.location.search);
+            const explicitRoom = urlParams.get('room') || (currentRoom && currentRoom !== 'lobby' ? currentRoom : null);
+            if (explicitRoom) {
+                const userEl = document.getElementById('username');
+                const activeName = playerName || (userEl ? userEl.value.trim() : '') || 'Player 2';
+                socket.emit('join_game', { room: explicitRoom, name: activeName, join_only: true });
+            }
+        });
+
+        socket.on('connect_error', (err) => {
+            console.warn('Socket connection error:', err);
+            const badge = document.getElementById('connectionBadge');
+            if (badge) {
+                badge.textContent = '○ Reconnecting...';
+                badge.style.color = 'var(--accent-gold)';
+            }
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server.');
+            const badge = document.getElementById('connectionBadge');
+            if (badge) {
+                badge.textContent = '○ Offline';
+                badge.style.color = 'var(--accent-ruby)';
+            }
         });
 
         socket.on('join_error', (data) => {
             if (typeof sound !== 'undefined') sound.playInvalid();
             const errDiv = document.getElementById('joinCodeError');
+            const statusDiv = document.getElementById('joinRoomStatus');
+            const joinBtn = document.getElementById('btnJoinRoom');
             if (errDiv) errDiv.textContent = data.message || 'Unable to join room';
+            if (statusDiv) statusDiv.style.display = 'none';
+            if (joinBtn) {
+                joinBtn.disabled = false;
+                joinBtn.innerHTML = '⚡ Join Match';
+            }
+            const input = document.getElementById('joinRoomCodeInput');
+            if (input) {
+                input.classList.add('shake');
+                setTimeout(() => input.classList.remove('shake'), 480);
+            }
             showToast(data.message || 'Unable to join room!', 'error');
         });
 
@@ -1711,32 +1801,12 @@
             if (wm) wm.classList.remove('active');
         }
 
-        socket.on('connect', () => {
-            const badge = document.getElementById('connectionBadge');
-            if (badge) {
-                badge.textContent = '● Online';
-                badge.style.color = 'var(--accent-emerald)';
-            }
-            const activeRoom = currentRoom || roomId || 'lobby';
-            const userEl = document.getElementById('username');
-            const activeName = playerName || (userEl ? userEl.value.trim() : '') || 'Player 1';
-            socket.emit('join_game', { room: activeRoom, name: activeName });
-        });
-
-        socket.on('disconnect', () => {
-            const badge = document.getElementById('connectionBadge');
-            if (badge) {
-                badge.textContent = '○ Offline';
-                badge.style.color = 'var(--accent-ruby)';
-            }
-        });
-
         socket.on('game_state', (state) => {
             updateUI(state);
         });
 
         socket.on('invalid_move', (data) => {
-            sound.playInvalid();
+            if (typeof sound !== 'undefined') sound.playInvalid();
             showToast(data.reason || 'Invalid Move!', 'error');
             if (data.card_id) {
                 const el = document.getElementById(`card-${data.card_id}`);
@@ -1759,6 +1829,11 @@
 
             if (state.status === 'waiting') {
                 statusPill.textContent = state.is_bot ? 'AI Bot Ready' : 'Waiting for Opponent...';
+                const statusDiv = document.getElementById('joinRoomStatus');
+                if (statusDiv && state.role === 'p2') {
+                    statusDiv.style.display = 'block';
+                    statusDiv.innerHTML = `🟢 Connected to Room <b>${state.room_id}</b> as Player 2!<br><span style="font-size: 0.75rem; color: var(--text-muted);">Waiting for Host or match start...</span>`;
+                }
                 if (!modalManuallyClosed && !isPlayer2) {
                     document.getElementById('waitingModal').classList.add('active');
                     document.getElementById('waitingBanner').style.display = 'none';
@@ -1770,12 +1845,20 @@
                 statusPill.textContent = 'Starting in ' + state.countdown + '...';
                 document.getElementById('waitingModal').classList.remove('active');
                 document.getElementById('waitingBanner').style.display = 'none';
+                const joinBtn = document.getElementById('btnJoinRoom');
+                if (joinBtn) { joinBtn.disabled = false; joinBtn.innerHTML = '⚡ Join Match'; }
+                const statusDiv = document.getElementById('joinRoomStatus');
+                if (statusDiv) statusDiv.style.display = 'none';
             } else if (state.status === 'playing') {
                 gameOverDismissed = false;
                 statusPill.textContent = state.is_bot ? 'Match vs SpitBot!' : 'Match in Progress!';
                 document.getElementById('waitingModal').classList.remove('active');
                 document.getElementById('gameOverModal').classList.remove('active');
                 document.getElementById('waitingBanner').style.display = 'none';
+                const joinBtn = document.getElementById('btnJoinRoom');
+                if (joinBtn) { joinBtn.disabled = false; joinBtn.innerHTML = '⚡ Join Match'; }
+                const statusDiv = document.getElementById('joinRoomStatus');
+                if (statusDiv) statusDiv.style.display = 'none';
             } else if (state.status === 'game_over') {
                 statusPill.textContent = 'Game Over';
             }
@@ -1958,6 +2041,10 @@
                 div.addEventListener('dragstart', (e) => handleDragStart(e, card.id));
                 div.addEventListener('dragend', handleDragEnd);
                 div.addEventListener('click', () => handleCardClick(card.id));
+                div.addEventListener('touchstart', (e) => handleTouchStart(e, card.id), { passive: false });
+                div.addEventListener('touchmove', (e) => handleTouchMove(e, card.id), { passive: false });
+                div.addEventListener('touchend', (e) => handleTouchEnd(e, card.id), { passive: false });
+                div.addEventListener('touchcancel', handleTouchCancel);
             }
 
             return div;
@@ -2065,6 +2152,75 @@
             if (cardId) {
                 executePlay(cardId, pileNum);
             }
+            deselectCard();
+        }
+
+        // --- Mobile Touch Drag & Play Gesture Handlers ---
+        let touchDragCardId = null;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let isTouchMoved = false;
+
+        function handleTouchStart(e, cardId) {
+            if (!e.touches || e.touches.length !== 1) return;
+            touchDragCardId = cardId;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            isTouchMoved = false;
+            e.currentTarget.classList.add('selected');
+            document.getElementById('centralPile1').classList.add('active-target');
+            document.getElementById('centralPile2').classList.add('active-target');
+        }
+
+        function handleTouchMove(e, cardId) {
+            if (!touchDragCardId) return;
+            if (e.cancelable) e.preventDefault(); // Prevents mobile viewport scroll & black background shift!
+            const t = e.touches[0];
+            const dx = t.clientX - touchStartX;
+            const dy = t.clientY - touchStartY;
+            if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                isTouchMoved = true;
+            }
+            const pile1 = document.getElementById('centralPile1');
+            const pile2 = document.getElementById('centralPile2');
+            const rect1 = pile1.getBoundingClientRect();
+            const rect2 = pile2.getBoundingClientRect();
+
+            const overP1 = (t.clientX >= rect1.left - 12 && t.clientX <= rect1.right + 12 &&
+                            t.clientY >= rect1.top - 12 && t.clientY <= rect1.bottom + 12);
+            const overP2 = (t.clientX >= rect2.left - 12 && t.clientX <= rect2.right + 12 &&
+                            t.clientY >= rect2.top - 12 && t.clientY <= rect2.bottom + 12);
+
+            pile1.classList.toggle('drag-hover', overP1);
+            pile2.classList.toggle('drag-hover', overP2);
+        }
+
+        function handleTouchEnd(e, cardId) {
+            if (!touchDragCardId) return;
+            const pile1 = document.getElementById('centralPile1');
+            const pile2 = document.getElementById('centralPile2');
+            const isP1 = pile1.classList.contains('drag-hover');
+            const isP2 = pile2.classList.contains('drag-hover');
+
+            pile1.classList.remove('active-target', 'drag-hover');
+            pile2.classList.remove('active-target', 'drag-hover');
+            deselectCard();
+
+            if (isP1) {
+                executePlay(cardId, 1);
+            } else if (isP2) {
+                executePlay(cardId, 2);
+            } else if (!isTouchMoved) {
+                // Quick tap without move: handle click selection
+                handleCardClick(cardId);
+            }
+            touchDragCardId = null;
+        }
+
+        function handleTouchCancel() {
+            touchDragCardId = null;
+            document.getElementById('centralPile1').classList.remove('active-target', 'drag-hover');
+            document.getElementById('centralPile2').classList.remove('active-target', 'drag-hover');
             deselectCard();
         }
 
