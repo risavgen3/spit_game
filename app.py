@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room  # type: ignore
 
 app = Flask(__name__)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 # Automatic async_mode detection (eventlet for production gunicorn, threading for local dev)
 async_mode: Literal["threading", "eventlet"] = "threading"

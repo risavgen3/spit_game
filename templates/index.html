@@ -10,12 +10,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800;900&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
-    <!-- Local Socket.io client script first, CDN fallback -->
-    <script src="/static/socket.io.min.js"></script>
+    <!-- Socket.IO client library (CDN first with local offline fallback) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
     <script>
         if (typeof io === 'undefined') {
             const s = document.createElement('script');
-            s.src = "https://cdn.socket.io/4.7.5/socket.io.min.js";
+            s.src = "/static/socket.io.min.js";
             document.head.appendChild(s);
         }
     </script>
@@ -52,6 +52,10 @@
             user-select: none;
             -webkit-user-select: none;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        .hidden {
+            display: none !important;
         }
 
         body {
@@ -987,6 +991,7 @@
             <span class="badge-arcade">Arcade Clash</span>
         </div>
         <div class="header-controls">
+            <span class="stat-pill" id="room-badge" style="font-weight: 700; color: var(--accent-cyan);">Room: lobby</span>
             <span class="stat-pill" id="connectionBadge" style="font-weight: 800; color: var(--accent-emerald);">● Online</span>
             <button class="btn btn-sm" onclick="returnToDashboard()" title="Return to Main Dashboard">
                 🏠 Dashboard
@@ -1020,7 +1025,7 @@
     </div>
 
     <!-- Main Game Table Arena -->
-    <main class="arena">
+    <main class="arena" id="game-screen">
         <!-- Opponent Player Area (Human or AI Bot) -->
         <section class="player-zone opponent-zone">
             <div class="player-meta">
@@ -1196,6 +1201,26 @@
                     <button class="btn btn-primary" onclick="copyInviteLink()">📋 Copy URL</button>
                 </div>
             </div>
+
+            <!-- Login / Custom Room Join Panel -->
+            <div id="login-screen" style="margin-top: 14px; background: rgba(6, 18, 12, 0.85); padding: 14px; border-radius: 14px; border: 1px solid rgba(0, 242, 254, 0.25); text-align: left;">
+                <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    🎮 Custom Room / Enter Name
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <div>
+                        <label for="username" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Player Name</label>
+                        <input type="text" id="username" class="share-input" placeholder="Your Name" style="width: 100%;" value="Player 1" />
+                    </div>
+                    <div>
+                        <label for="roomname" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Room Code</label>
+                        <input type="text" id="roomname" class="share-input" placeholder="Room Code" style="width: 100%;" value="lobby" />
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px; font-weight: 700;" onclick="joinGame()">
+                    🚀 Join Game &amp; Enter Table
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1284,6 +1309,82 @@
 
     <!-- Client Logic & Socket.IO Handler -->
     <script>
+        // Explicitly allow polling fallback for Render proxy compatibility
+        const socket = io({
+            transports: ['polling', 'websocket'],
+            upgrade: true
+        });
+
+        let selectedCharAt = null;
+        let currentRoom = 'lobby';
+        let roomId = 'lobby';
+        let playerName = '';
+        window.currentRoom = currentRoom;
+        window.roomId = roomId;
+
+        function autoDetectRoom() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            if (roomParam) {
+                const roomEl = document.getElementById('roomname');
+                if (roomEl) roomEl.value = roomParam;
+                currentRoom = roomParam;
+                window.currentRoom = currentRoom;
+                if (typeof roomId !== 'undefined') roomId = roomParam;
+            }
+            const playerParam = urlParams.get('player');
+            if (playerParam) {
+                const userEl = document.getElementById('username');
+                if (userEl) userEl.value = playerParam;
+                if (typeof playerName !== 'undefined') playerName = playerParam;
+            }
+        }
+        autoDetectRoom();
+
+        // Auto-detect room from URL query parameters on load
+        window.addEventListener('DOMContentLoaded', () => {
+            autoDetectRoom();
+            
+            // Connection status indicators
+            socket.on('connect', () => {
+                console.log('Connected to server!');
+            });
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server.');
+            });
+        });
+
+        function joinGame() {
+            const userEl = document.getElementById('username');
+            const roomEl = document.getElementById('roomname');
+            const name = (userEl ? userEl.value.trim() : '') || playerName || 'Player 1';
+            const room = (roomEl ? roomEl.value.trim() : '') || currentRoom || 'lobby';
+            if (!name) { alert('Please enter your name'); return; }
+            currentRoom = room;
+            roomId = room;
+            playerName = name;
+            window.currentRoom = currentRoom;
+            window.roomId = roomId;
+
+            socket.emit('join_game', { name, room });
+            const loginEl = document.getElementById('login-screen');
+            if (loginEl) loginEl.classList.add('hidden');
+            const gameEl = document.getElementById('game-screen');
+            if (gameEl) gameEl.classList.remove('hidden');
+            const roomBadge = document.getElementById('room-badge');
+            if (roomBadge) roomBadge.innerText = `Room: ${room}`;
+
+            const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+            if (roomCodeDisplay) roomCodeDisplay.textContent = room;
+            const bannerRoomName = document.getElementById('bannerRoomName');
+            if (bannerRoomName) bannerRoomName.textContent = room;
+            const shareUrlInput = document.getElementById('shareUrlInput');
+            if (shareUrlInput) {
+                shareUrlInput.value = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(room)}`;
+            }
+            if (typeof closeModeModal === 'function') closeModeModal();
+        }
+
         // --- Web Audio Synthesizer Engine ---
         class SoundFX {
             constructor() {
@@ -1394,8 +1495,9 @@
 
         // --- Room & Player URL Parameters ---
         const urlParams = new URLSearchParams(window.location.search);
-        let roomId = urlParams.get('room') || 'lobby';
-        let playerName = urlParams.get('player') || '';
+        roomId = urlParams.get('room') || currentRoom || 'lobby';
+        currentRoom = roomId;
+        playerName = urlParams.get('player') || playerName || '';
         const isPlayer2 = (playerName.toLowerCase().includes('player 2') || playerName.toLowerCase().includes('p2'));
 
         document.getElementById('roomCodeDisplay').textContent = roomId;
@@ -1421,8 +1523,7 @@
             }
         }
 
-        // --- Socket.IO Client Initialization ---
-        const socket = io();
+        // --- Game State Variables ---
         let currentRole = null;
         let selectedHandCardId = null;
         let lastKnownStatus = 'waiting';
@@ -1431,20 +1532,28 @@
         let gameOverDismissed = false;
 
         if (isPlayer2) {
-            document.getElementById('waitingModal').classList.remove('active');
+            const wm = document.getElementById('waitingModal');
+            if (wm) wm.classList.remove('active');
         }
 
         socket.on('connect', () => {
             const badge = document.getElementById('connectionBadge');
-            badge.textContent = '● Online';
-            badge.style.color = 'var(--accent-emerald)';
-            socket.emit('join_game', { room: roomId, name: playerName });
+            if (badge) {
+                badge.textContent = '● Online';
+                badge.style.color = 'var(--accent-emerald)';
+            }
+            const activeRoom = currentRoom || roomId || 'lobby';
+            const userEl = document.getElementById('username');
+            const activeName = playerName || (userEl ? userEl.value.trim() : '') || 'Player 1';
+            socket.emit('join_game', { room: activeRoom, name: activeName });
         });
 
         socket.on('disconnect', () => {
             const badge = document.getElementById('connectionBadge');
-            badge.textContent = '○ Offline';
-            badge.style.color = 'var(--accent-ruby)';
+            if (badge) {
+                badge.textContent = '○ Offline';
+                badge.style.color = 'var(--accent-ruby)';
+            }
         });
 
         socket.on('game_state', (state) => {
