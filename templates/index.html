@@ -167,6 +167,8 @@
             align-items: center;
             gap: 6px;
             font-family: 'Outfit', sans-serif;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn:hover {
@@ -354,6 +356,7 @@
             justify-content: space-between;
             padding: clamp(6px, 1.4vw, 10px) clamp(6px, 1.4vw, 10px);
             position: relative;
+            z-index: 2;
             cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.8);
             box-shadow: 
@@ -361,10 +364,12 @@
                 inset 0 0 0 1px rgba(255, 255, 255, 0.95),
                 inset 0 0 0 2px rgba(0, 0, 0, 0.06),
                 0 8px 24px rgba(0, 0, 0, 0.55);
-            transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.2s ease;
+            transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, border-color 0.15s ease;
             transform-origin: center bottom;
             touch-action: none;
             -webkit-touch-callout: none;
+            will-change: transform, box-shadow;
+            -webkit-tap-highlight-color: transparent;
         }
 
         /* Inner ornamental border inset */
@@ -518,9 +523,12 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            transition: all 0.25s ease;
+            transition: all 0.2s ease;
             cursor: pointer;
             box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+            touch-action: none;
+            will-change: transform, border-color, box-shadow;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .central-pile * {
@@ -588,6 +596,9 @@
             align-items: center;
             gap: 8px;
             white-space: nowrap;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            will-change: transform, box-shadow;
         }
 
         .btn-spit:hover:not(:disabled) {
@@ -598,7 +609,7 @@
         }
 
         .btn-spit:active:not(:disabled) {
-            transform: translateY(4px);
+            transform: translateY(4px) scale(0.97);
             box-shadow: 
                 0 2px 0 #701a75,
                 0 6px 15px rgba(255, 0, 127, 0.4);
@@ -696,6 +707,205 @@
             font-size: 0.95rem;
             color: #fff;
             box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4), 4px 4px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        /* ----------------------------------------------------
+           SPIT / SLAM TABLEAU GRID & SLAP STYLES
+           ---------------------------------------------------- */
+        .tableau-grid {
+            display: flex;
+            gap: clamp(6px, 1.8vw, 14px);
+            justify-content: center;
+            align-items: center;
+            min-height: calc(var(--card-height) + 12px);
+            width: 100%;
+            padding: 4px;
+        }
+
+        .tableau-pile {
+            position: relative;
+            width: var(--card-width);
+            height: var(--card-height);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Empty tableau slot */
+        .tableau-slot-empty {
+            width: var(--card-width);
+            height: var(--card-height);
+            border-radius: 12px;
+            border: 2px dashed rgba(0, 242, 254, 0.35);
+            background: rgba(0, 242, 254, 0.04);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .tableau-slot-empty:hover {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 242, 254, 0.12);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+            transform: scale(1.02);
+        }
+
+        .tableau-slot-empty.active-gap-target {
+            border-color: var(--accent-gold);
+            background: rgba(255, 183, 3, 0.12);
+            box-shadow: 0 0 20px rgba(255, 183, 3, 0.5);
+            animation: gapTargetPulse 1.2s infinite alternate;
+        }
+
+        @keyframes gapTargetPulse {
+            from { transform: scale(1); border-color: rgba(255, 183, 3, 0.6); }
+            to { transform: scale(1.04); border-color: rgba(255, 183, 3, 1); }
+        }
+
+        .slot-empty-icon {
+            font-size: 1.2rem;
+            opacity: 0.6;
+        }
+
+        .slot-empty-label {
+            font-size: 0.65rem;
+            color: var(--accent-cyan);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+            padding: 0 4px;
+        }
+
+        /* Face-Down Card Back Styling */
+        .card.card-back {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #0f172a 100%);
+            border: 2px solid rgba(167, 139, 250, 0.4);
+            box-shadow: 
+                0 4px 12px rgba(0, 0, 0, 0.5),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default;
+        }
+
+        .card.card-back::before {
+            content: '♠♦♥♣';
+            font-size: 0.85rem;
+            letter-spacing: 3px;
+            color: rgba(167, 139, 250, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card.card-back::after {
+            border-color: rgba(167, 139, 250, 0.25);
+        }
+
+        /* Pile Stack Depth Badge */
+        .pile-depth-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: rgba(3, 13, 8, 0.9);
+            color: var(--accent-gold);
+            border: 1px solid var(--accent-gold);
+            font-family: 'Space Grotesk', monospace;
+            font-size: 0.68rem;
+            font-weight: 900;
+            padding: 1px 6px;
+            border-radius: 10px;
+            z-index: 12;
+            pointer-events: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Underneath layered card effect */
+        .pile-layer-under {
+            position: absolute;
+            top: -4px;
+            left: 2px;
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #1e1b4b, #0f172a);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Slap Action Button */
+        .btn-slap {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 2px solid #fecaca;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.9), 0 4px 10px rgba(0,0,0,0.5);
+            cursor: pointer;
+            margin-top: 6px;
+            animation: slapPulse 0.75s infinite alternate;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            will-change: transform, box-shadow;
+        }
+
+        .btn-slap:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 35px rgba(239, 68, 68, 1);
+        }
+
+        .btn-slap:active {
+            transform: scale(0.96);
+        }
+
+        @keyframes slapPulse {
+            0% { transform: scale(1); box-shadow: 0 0 15px rgba(239, 68, 68, 0.7); }
+            100% { transform: scale(1.06); box-shadow: 0 0 35px rgba(239, 68, 68, 1); }
+        }
+
+        /* Center pile glowing when ready to slap */
+        .central-pile.can-slap-target {
+            border-color: #ef4444 !important;
+            border-style: solid !important;
+            animation: slapPileGlow 0.8s infinite alternate !important;
+            box-shadow: 0 0 35px rgba(239, 68, 68, 0.85) !important;
+            cursor: pointer !important;
+        }
+
+        @keyframes slapPileGlow {
+            from { transform: scale(1); box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+            to { transform: scale(1.05); box-shadow: 0 0 40px rgba(239, 68, 68, 1); }
+        }
+
+        /* Round indicator pill */
+        .round-badge {
+            background: linear-gradient(135deg, rgba(255, 183, 3, 0.2), rgba(255, 0, 127, 0.2));
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            font-family: 'Space Grotesk', monospace;
+            font-size: 0.76rem;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 12px;
+            letter-spacing: 0.5px;
         }
 
         /* Footer Status Bar */
@@ -1110,16 +1320,16 @@
                     <span class="stat-value" id="oppTotalCards">26</span>
                 </div>
                 <div class="stat-pill">
-                    <span>Stock:</span>
-                    <span class="stat-value" id="oppStockCount" style="color: var(--accent-magenta);">21</span>
+                    <span>Spit Stock:</span>
+                    <span class="stat-value" id="oppStockCount" style="color: var(--accent-magenta);">11</span>
                 </div>
                 <div class="stock-indicator">
-                    <div class="stock-deck" id="oppStockDeck" title="Opponent Draw Stock">
-                        <span id="oppStockDeckNum">21</span>
+                    <div class="stock-deck" id="oppStockDeck" title="Opponent Spit Stock">
+                        <span id="oppStockDeckNum">11</span>
                     </div>
                 </div>
             </div>
-            <div class="cards-row opponent-hand" id="opponentHandContainer"></div>
+            <div class="tableau-grid opponent-tableau" id="opponentHandContainer"></div>
         </section>
 
         <!-- Central Spit Battleground -->
@@ -1135,9 +1345,11 @@
                 <span class="stat-pill" style="font-size: 0.75rem;">
                     Count: <b id="pile1Count" style="color: #fff; margin-left: 4px;">1</b>
                 </span>
+                <button class="btn-slap" id="slapBtn1" onclick="requestSlap(1)">💥 SLAP PILE 1!</button>
             </div>
 
             <div class="spit-controls">
+                <div class="round-badge" id="matchRoundBadge">Round 1</div>
                 <button class="btn-spit" id="spitBtn" onclick="requestSpit()">⚡ SPIT!</button>
                 <div class="spit-status-text" id="spitStatusMsg">Both players must tap Spit when stuck</div>
             </div>
@@ -1152,12 +1364,13 @@
                 <span class="stat-pill" style="font-size: 0.75rem;">
                     Count: <b id="pile2Count" style="color: #fff; margin-left: 4px;">1</b>
                 </span>
+                <button class="btn-slap" id="slapBtn2" onclick="requestSlap(2)">💥 SLAP PILE 2!</button>
             </div>
         </section>
 
         <!-- Local Player Area -->
         <section class="player-zone local-zone">
-            <div class="cards-row player-hand" id="localHandContainer"></div>
+            <div class="tableau-grid local-tableau" id="localHandContainer"></div>
             <div class="player-meta">
                 <span class="player-name local" id="localNameLabel">⭐ You (Player 1)</span>
                 <div class="stat-pill">
@@ -1165,12 +1378,12 @@
                     <span class="stat-value" id="localTotalCards" style="color: var(--accent-cyan);">26</span>
                 </div>
                 <div class="stat-pill">
-                    <span>Your Stock:</span>
-                    <span class="stat-value" id="localStockCount" style="color: var(--accent-cyan);">21</span>
+                    <span>Spit Stock:</span>
+                    <span class="stat-value" id="localStockCount" style="color: var(--accent-cyan);">11</span>
                 </div>
                 <div class="stock-indicator">
-                    <div class="stock-deck" id="localStockDeck" title="Your Draw Stock">
-                        <span id="localStockDeckNum">21</span>
+                    <div class="stock-deck" id="localStockDeck" title="Your Spit Stock">
+                        <span id="localStockDeckNum">11</span>
                     </div>
                 </div>
             </div>
@@ -1184,7 +1397,7 @@
             <span class="log-ticker" id="recentLogTicker">Welcome to Spit! Choose Solo vs AI or 2-Player to clash.</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px; color: var(--text-muted);">
-            <span>Shortcuts: <b>1-5</b> Select | <b>Q / W</b> Play | <b>Space</b> SPIT!</span>
+            <span>Shortcuts: <b>1-5</b> Select / Move | <b>Q / W</b> Play | <b>Space / S</b> SPIT / SLAP!</span>
         </div>
     </footer>
 
@@ -1219,7 +1432,7 @@
                     <span style="font-size: 1.1rem;">👤</span>
                     <label for="username" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Your Player Name:</label>
                 </div>
-                <input type="text" id="username" class="share-input" style="max-width: 170px; font-weight: 700; text-align: center;" placeholder="Your Name" value="Player 1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="event.stopPropagation()" />
+                <input type="text" id="username" class="share-input" style="max-width: 170px; font-weight: 700; text-align: center;" placeholder="Your Name" value="Player 1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="event.stopPropagation()" onkeypress="event.stopPropagation()" onkeyup="event.stopPropagation()" />
                 <input type="hidden" id="roomname" value="lobby" />
             </div>
 
@@ -1375,30 +1588,40 @@
                 <button class="btn-close" onclick="toggleRulesModal()">✕</button>
             </div>
             <div style="text-align: left; font-size: 0.9rem; line-height: 1.6; color: var(--text-main);">
-                <p><b>🎯 Goal:</b> Be the first to empty all 26 cards (your 5 hand cards and your 21 draw stock cards)!</p>
+                <p><b>🎯 Goal:</b> Be the first to shed all cards in your tableau and spit stock to win the match!</p>
+                <br/>
+                <p><b>🃏 5 Tableau Piles &amp; Gap Filling:</b></p>
+                <p style="color: var(--accent-cyan);">
+                    You have 5 tableau piles with depths 1, 2, 3, 4, and 5 cards. Only the top card of each pile is face-up. Whenever you play the top card, the card underneath flips face-up!
+                </p>
+                <p style="color: var(--accent-gold); margin-top: 4px;">
+                    <b>Empty Slots (Gap Fill):</b> If any pile becomes completely empty, you can move any face-up card into the empty slot to uncover hidden cards underneath!
+                </p>
                 <br/>
                 <p><b>⚡ Fast-Paced Card Placement (+/- 1 Rank):</b></p>
-                <p style="color: var(--accent-gold);">
-                    There are no turns! Play as fast as you can. Play any card from your 5-card hand that is 1 above or 1 below either central pile.
-                </p>
-                <p style="color: var(--accent-cyan); margin-top: 4px;">
+                <p style="color: var(--text-main);">
+                    Play any top face-up card from your tableau that is 1 above or 1 below either central pile.
                     <b>Ace wraps with King and 2!</b> (e.g. King on Ace, Ace on King, 2 on Ace, Ace on 2).
                 </p>
                 <br/>
                 <p><b>🔄 Simultaneous Spit Flipping:</b></p>
                 <p style="color: var(--accent-gold);">
-                    If neither player has a valid move, tap <b>SPIT!</b> (or press Space). <b>Cards will ONLY flip when BOTH players have called SPIT!</b> If your opponent or SpitBot calls Spit first, your Spit button will flash—tap it to flip together!
+                    When no moves are possible, both players tap <b>SPIT!</b> (or press Space). Cards flip simultaneously from each player's spit stock!
+                </p>
+                <br/>
+                <p><b>💥 The Slap &amp; Multi-Round Play:</b></p>
+                <p style="color: var(--accent-magenta);">
+                    When a player clears all 5 tableau piles, <b>a slap race begins!</b> Both players race to slap Pile 1 or Pile 2. The first to slap takes that center pile (aim for the smaller one!). The remaining cards are re-dealt into tableau piles for the next round until someone sheds all 26 cards!
                 </p>
                 <br/>
                 <p><b>⌨️ Controls &amp; Shortcuts:</b></p>
                 <ul style="margin-left: 20px; color: var(--text-muted); font-size: 0.85rem;">
-                    <li><b>Click &amp; Play:</b> Click a card in your hand, then click Pile 1 or Pile 2.</li>
-                    <li><b>Drag &amp; Drop:</b> Drag any hand card directly onto Pile 1 or 2.</li>
-                    <li><b>Keys 1, 2, 3, 4, 5:</b> Select card 1 through 5 in hand.</li>
-                    <li><b>Key Q:</b> Play selected card to Pile 1.</li>
-                    <li><b>Key W or E:</b> Play selected card to Pile 2.</li>
-                    <li><b>Space or S:</b> Tap SPIT!</li>
-                    <li><b>Enter:</b> Request Rematch on game over.</li>
+                    <li><b>Keys 1, 2, 3, 4, 5:</b> Select card in pile 1-5, or move selected card to that empty slot!</li>
+                    <li><b>Key Q:</b> Play selected card to Pile 1 (or Slap Pile 1 when race starts!).</li>
+                    <li><b>Key W or E:</b> Play selected card to Pile 2 (or Slap Pile 2 when race starts!).</li>
+                    <li><b>Space or S:</b> Tap SPIT! (or Slap smaller pile during slap race).</li>
+                    <li><b>Drag &amp; Drop:</b> Drag cards directly to center piles or empty slots.</li>
+                    <li><b>Enter:</b> Play Rematch on game over.</li>
                 </ul>
             </div>
             <button class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 18px;" onclick="toggleRulesModal()">
@@ -1413,9 +1636,9 @@
         const SERVER_LAN_IP = "{{ local_ip }}";
         const SERVER_PORT = "{{ port }}";
 
-        // Explicitly allow polling fallback for Render proxy and mobile LAN compatibility
+        // Connect directly with WebSocket first to prevent Werkzeug upgrade 400 Bad Request errors, with resilient fallback
         const socket = io({
-            transports: ['polling', 'websocket'],
+            transports: ['websocket', 'polling'],
             upgrade: true,
             reconnection: true,
             reconnectionAttempts: 20,
@@ -1827,6 +2050,8 @@
         // --- Game State Variables ---
         let currentRole = null;
         let selectedHandCardId = null;
+        let selectedTableauPileIdx = null;
+        let latestGameState = null;
         let lastKnownStatus = 'waiting';
         let isDraggingCardId = null;
         let modalManuallyClosed = isPlayer2;
@@ -1856,8 +2081,15 @@
 
         // --- Update UI with Game State ---
         function updateUI(state) {
+            latestGameState = state;
             currentRole = state.role;
             const isPlaying = state.status === 'playing';
+
+            // Round Badge
+            const roundBadge = document.getElementById('matchRoundBadge');
+            if (roundBadge) {
+                roundBadge.textContent = `Round ${state.round_num || 1}`;
+            }
 
             // Status Pill
             const statusPill = document.getElementById('gameStatusPill');
@@ -1887,7 +2119,7 @@
                 if (statusDiv) statusDiv.style.display = 'none';
             } else if (state.status === 'playing') {
                 gameOverDismissed = false;
-                statusPill.textContent = state.is_bot ? 'Match vs SpitBot!' : 'Match in Progress!';
+                statusPill.textContent = state.is_bot ? `Match vs SpitBot (R${state.round_num || 1})` : `Match in Progress (R${state.round_num || 1})!`;
                 document.getElementById('waitingModal').classList.remove('active');
                 document.getElementById('gameOverModal').classList.remove('active');
                 document.getElementById('waitingBanner').style.display = 'none';
@@ -1911,7 +2143,7 @@
 
             if (lastKnownStatus !== 'playing' && state.status === 'playing') {
                 sound.playBeep(880);
-                showToast('MATCH START! Play fast!', 'success');
+                showToast('ROUND START! Play fast!', 'success');
             }
             lastKnownStatus = state.status;
 
@@ -1951,9 +2183,36 @@
             renderCentralPile(1, state.pile1_top, state.pile1_count);
             renderCentralPile(2, state.pile2_top, state.pile2_count);
 
-            // Hands
-            renderLocalHand(state.your_hand);
-            renderOpponentHand(state.opponent_hand, state.is_bot);
+            // Slap Buttons & Glowing Piles
+            const slapBtn1 = document.getElementById('slapBtn1');
+            const slapBtn2 = document.getElementById('slapBtn2');
+            const pile1El = document.getElementById('centralPile1');
+            const pile2El = document.getElementById('centralPile2');
+
+            if (state.can_slap && isPlaying) {
+                if (slapBtn1) slapBtn1.style.display = 'flex';
+                if (slapBtn2) slapBtn2.style.display = 'flex';
+                if (pile1El) pile1El.classList.add('can-slap-target');
+                if (pile2El) pile2El.classList.add('can-slap-target');
+            } else {
+                if (slapBtn1) slapBtn1.style.display = 'none';
+                if (slapBtn2) slapBtn2.style.display = 'none';
+                if (pile1El) pile1El.classList.remove('can-slap-target');
+                if (pile2El) pile2El.classList.remove('can-slap-target');
+            }
+
+            // Tableau Rendering
+            if (state.your_tableau) {
+                renderLocalTableau(state.your_tableau);
+            } else if (state.your_hand) {
+                renderLocalHand(state.your_hand);
+            }
+
+            if (state.opponent_tableau) {
+                renderOpponentTableau(state.opponent_tableau, state.is_bot);
+            } else if (state.opponent_hand) {
+                renderOpponentHand(state.opponent_hand, state.is_bot);
+            }
 
             // Dynamic Bot Speed Switcher Sync
             const botSpeedBar = document.getElementById('botSpeedControls');
@@ -1969,19 +2228,21 @@
             // Spit Button State - Strict Simultaneous Feedback
             const spitBtn = document.getElementById('spitBtn');
             const spitMsg = document.getElementById('spitStatusMsg');
-            spitBtn.disabled = !isPlaying;
+            spitBtn.disabled = !isPlaying || state.can_slap;
             spitBtn.classList.remove('ready', 'opp-ready');
             spitMsg.classList.remove('urgent');
 
-            if (state.your_spit && !state.opp_spit) {
-                // You called spit, waiting for opponent/bot
+            if (state.can_slap) {
+                spitBtn.textContent = '⚡ RACE TO SLAP!';
+                spitMsg.textContent = '💥 Tableau cleared! Slap Pile 1 or 2 now!';
+                spitMsg.classList.add('urgent');
+            } else if (state.your_spit && !state.opp_spit) {
                 spitBtn.classList.add('ready');
                 spitBtn.textContent = '⏳ READY (1/2)';
                 spitMsg.textContent = state.is_bot 
                     ? 'Waiting for SpitBot to call SPIT...' 
                     : 'Waiting for opponent to tap SPIT...';
             } else if (!state.your_spit && state.opp_spit) {
-                // Opponent or bot called spit, waiting for YOU!
                 spitBtn.classList.add('opp-ready');
                 spitBtn.textContent = '⚡ FLIP READY! (1/2)';
                 spitMsg.classList.add('urgent');
@@ -2010,7 +2271,6 @@
                 const icon = document.getElementById('gameOverIcon');
                 modal.classList.add('active');
 
-                // Format match duration
                 const duration = state.match_duration || 0;
                 const mins = Math.floor(duration / 60);
                 const secs = duration % 60;
@@ -2026,9 +2286,9 @@
                     title.className = 'modal-title win';
                     icon.textContent = '🏆';
                     desc.textContent = state.is_bot 
-                        ? 'Incredible reflexes! You defeated SpitBot and emptied all 26 cards!'
-                        : 'Unbelievable speed! You cleared your deck before your opponent!';
-                    document.getElementById('statCardsCleared').textContent = '26 / 26 (100%)';
+                        ? 'Incredible reflexes! You shed every single card and defeated SpitBot!'
+                        : 'Unbelievable speed! You cleared your deck and conquered the table!';
+                    document.getElementById('statCardsCleared').textContent = 'All Cards Shed (100%)';
                     document.getElementById('statOppRemaining').textContent = `${state.opponent_total_cards} cards left`;
                     sound.playFanfare();
                     launchConfetti();
@@ -2037,9 +2297,9 @@
                     title.className = 'modal-title lose';
                     icon.textContent = '💀';
                     desc.textContent = state.is_bot
-                        ? '🤖 SpitBot cleared its deck first! Challenge it to a rematch!'
-                        : 'Opponent was faster this round! Hit Rematch to clash again!';
-                    document.getElementById('statCardsCleared').textContent = `${26 - state.your_total_cards} / 26`;
+                        ? '🤖 SpitBot cleared its cards first! Challenge it to a rematch!'
+                        : 'Opponent was faster this match! Hit Rematch to clash again!';
+                    document.getElementById('statCardsCleared').textContent = `${state.your_total_cards} cards remaining`;
                     document.getElementById('statOppRemaining').textContent = '0 cards left (Winner)';
                     sound.playInvalid();
                 }
@@ -2049,7 +2309,7 @@
         // --- Card Element Factory ---
         function createCardElement(card, isLocal = false, keyHint = null) {
             const div = document.createElement('div');
-            div.className = `card ${card.color}`;
+            div.className = `card ${card.color || 'black'}`;
             div.id = `card-${card.id}`;
             div.dataset.cardId = card.id;
             div.dataset.rank = card.rank;
@@ -2061,13 +2321,13 @@
 
             div.innerHTML = `
                 <div class="card-corner top">
-                    <span>${card.label}</span>
-                    <span>${card.symbol}</span>
+                    <span>${card.label || ''}</span>
+                    <span>${card.symbol || ''}</span>
                 </div>
-                <div class="card-center-symbol">${card.symbol}</div>
+                <div class="card-center-symbol">${card.symbol || ''}</div>
                 <div class="card-corner bottom">
-                    <span>${card.label}</span>
-                    <span>${card.symbol}</span>
+                    <span>${card.label || ''}</span>
+                    <span>${card.symbol || ''}</span>
                 </div>
                 ${hintHtml}
             `;
@@ -2076,7 +2336,10 @@
                 div.draggable = true;
                 div.addEventListener('dragstart', (e) => handleDragStart(e, card.id));
                 div.addEventListener('dragend', handleDragEnd);
-                div.addEventListener('click', () => handleCardClick(card.id));
+                div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleCardClick(card.id);
+                });
                 div.addEventListener('touchstart', (e) => handleTouchStart(e, card.id), { passive: false });
                 div.addEventListener('touchmove', (e) => handleTouchMove(e, card.id), { passive: false });
                 div.addEventListener('touchend', (e) => handleTouchEnd(e, card.id), { passive: false });
@@ -2086,28 +2349,110 @@
             return div;
         }
 
-        // --- Render Hands & Piles ---
-        function renderLocalHand(hand) {
+        // --- Render Tableau Grids ---
+        function renderLocalTableau(tableau) {
             const container = document.getElementById('localHandContainer');
             container.innerHTML = '';
-            if (!hand || hand.length === 0) return;
-            hand.forEach((card, idx) => {
-                const el = createCardElement(card, true, idx < 5 ? (idx + 1) : null);
-                if (selectedHandCardId === card.id) {
-                    el.classList.add('selected');
+            if (!tableau) return;
+
+            for (let idx = 0; idx < 5; idx++) {
+                const pile = tableau[idx] || [];
+                const pileDiv = document.createElement('div');
+                pileDiv.className = 'tableau-pile';
+                pileDiv.id = `localPile-${idx}`;
+
+                if (pile.length > 0) {
+                    if (pile.length > 1) {
+                        const underLayer = document.createElement('div');
+                        underLayer.className = 'pile-layer-under';
+                        pileDiv.appendChild(underLayer);
+                    }
+                    const topCard = pile[pile.length - 1];
+                    const cardEl = createCardElement(topCard, true, (idx + 1));
+                    cardEl.dataset.fromPile = idx;
+                    if (selectedHandCardId === topCard.id) {
+                        cardEl.classList.add('selected');
+                    }
+                    pileDiv.appendChild(cardEl);
+
+                    const badge = document.createElement('span');
+                    badge.className = 'pile-depth-badge';
+                    badge.textContent = pile.length;
+                    badge.title = `${pile.length} cards in Pile ${idx + 1}`;
+                    pileDiv.appendChild(badge);
+                } else {
+                    // Empty slot: gap fill target
+                    const emptySlot = document.createElement('div');
+                    emptySlot.className = 'tableau-slot-empty';
+                    if (selectedHandCardId && selectedTableauPileIdx !== null && selectedTableauPileIdx !== idx) {
+                        emptySlot.classList.add('active-gap-target');
+                    }
+                    emptySlot.innerHTML = `
+                        <span class="slot-empty-icon">🔲</span>
+                        <span class="slot-empty-label">Slot ${idx + 1}<br><span style="font-size:0.6rem; opacity:0.8;">Empty</span></span>
+                    `;
+                    emptySlot.addEventListener('click', () => handleEmptySlotClick(idx));
+                    emptySlot.addEventListener('dragover', (e) => handleDragOverGap(e, idx));
+                    emptySlot.addEventListener('dragleave', (e) => handleDragLeaveGap(e, idx));
+                    emptySlot.addEventListener('drop', (e) => handleDropGap(e, idx));
+                    pileDiv.appendChild(emptySlot);
                 }
-                container.appendChild(el);
-            });
+                container.appendChild(pileDiv);
+            }
+        }
+
+        function renderOpponentTableau(tableau, isBot = false) {
+            const container = document.getElementById('opponentHandContainer');
+            container.innerHTML = '';
+            if (!tableau) return;
+
+            for (let idx = 0; idx < 5; idx++) {
+                const pile = tableau[idx] || [];
+                const pileDiv = document.createElement('div');
+                pileDiv.className = 'tableau-pile';
+
+                if (pile.length > 0) {
+                    if (pile.length > 1) {
+                        const underLayer = document.createElement('div');
+                        underLayer.className = 'pile-layer-under';
+                        pileDiv.appendChild(underLayer);
+                    }
+                    const topCard = pile[pile.length - 1];
+                    if (topCard && topCard.face_up) {
+                        const cardEl = createCardElement(topCard, false);
+                        pileDiv.appendChild(cardEl);
+                    } else {
+                        const backEl = document.createElement('div');
+                        backEl.className = 'card card-back';
+                        pileDiv.appendChild(backEl);
+                    }
+
+                    const badge = document.createElement('span');
+                    badge.className = 'pile-depth-badge';
+                    badge.textContent = pile.length;
+                    badge.title = `${pile.length} cards in Opponent Pile ${idx + 1}`;
+                    pileDiv.appendChild(badge);
+                } else {
+                    const emptySlot = document.createElement('div');
+                    emptySlot.className = 'tableau-slot-empty';
+                    emptySlot.style.cursor = 'default';
+                    emptySlot.style.opacity = '0.45';
+                    emptySlot.innerHTML = `
+                        <span class="slot-empty-icon">🔲</span>
+                        <span class="slot-empty-label">Slot ${idx + 1}<br><span style="font-size:0.6rem;">Empty</span></span>
+                    `;
+                    pileDiv.appendChild(emptySlot);
+                }
+                container.appendChild(pileDiv);
+            }
+        }
+
+        function renderLocalHand(hand) {
+            renderLocalTableau(hand.map(c => [c]));
         }
 
         function renderOpponentHand(hand, isBot = false) {
-            const container = document.getElementById('opponentHandContainer');
-            container.innerHTML = '';
-            if (!hand || hand.length === 0) return;
-            hand.forEach(card => {
-                const el = createCardElement(card, false);
-                container.appendChild(el);
-            });
+            renderOpponentTableau(hand.map(c => [c]), isBot);
         }
 
         function renderCentralPile(pileNum, topCard, count) {
@@ -2125,47 +2470,105 @@
             }
         }
 
-        // --- Card Interactions (Click & Drag) ---
+        // --- Card & Tableau Interactions ---
         function handleCardClick(cardId) {
+            let pIdx = null;
+            const cardEl = document.getElementById(`card-${cardId}`);
+            if (cardEl && cardEl.dataset.fromPile !== undefined) {
+                pIdx = parseInt(cardEl.dataset.fromPile);
+            }
+            handleTableauCardClick(cardId, pIdx);
+        }
+
+        function handleTableauCardClick(cardId, pileIdx) {
             if (selectedHandCardId === cardId) {
                 deselectCard();
             } else {
                 selectedHandCardId = cardId;
-                document.querySelectorAll('.player-hand .card').forEach(c => {
+                selectedTableauPileIdx = pileIdx;
+                document.querySelectorAll('.local-tableau .card, .player-hand .card').forEach(c => {
                     c.classList.toggle('selected', c.dataset.cardId === cardId);
                 });
                 sound.playSnap();
                 document.getElementById('centralPile1').classList.add('active-target');
                 document.getElementById('centralPile2').classList.add('active-target');
+                document.querySelectorAll('.tableau-slot-empty').forEach(el => el.classList.add('active-gap-target'));
             }
         }
 
         function deselectCard() {
             selectedHandCardId = null;
-            document.querySelectorAll('.player-hand .card').forEach(c => c.classList.remove('selected'));
+            selectedTableauPileIdx = null;
+            document.querySelectorAll('.local-tableau .card, .player-hand .card').forEach(c => c.classList.remove('selected'));
             document.getElementById('centralPile1').classList.remove('active-target');
             document.getElementById('centralPile2').classList.remove('active-target');
+            document.querySelectorAll('.tableau-slot-empty').forEach(el => el.classList.remove('active-gap-target'));
+        }
+
+        function handleEmptySlotClick(destPileIdx) {
+            if (selectedHandCardId && selectedTableauPileIdx !== null && selectedTableauPileIdx !== destPileIdx) {
+                socket.emit('play_card', {
+                    room: roomId,
+                    card_id: selectedHandCardId,
+                    from_pile: selectedTableauPileIdx,
+                    target: 'tableau',
+                    to_pile: destPileIdx
+                });
+                sound.playSnap();
+                deselectCard();
+            }
         }
 
         function handlePileClick(pileNum) {
+            if (latestGameState && latestGameState.can_slap) {
+                requestSlap(pileNum);
+                return;
+            }
             if (!selectedHandCardId) return;
             executePlay(selectedHandCardId, pileNum);
             deselectCard();
         }
 
+        function requestSlap(pileNum) {
+            sound.playSnap();
+            socket.emit('slap', { room: roomId, pile: pileNum });
+            showToast(`💥 Slapped Pile ${pileNum}!`, 'success');
+        }
+
+        function executePlay(cardId, pileNum) {
+            if (latestGameState && latestGameState.can_slap) {
+                requestSlap(pileNum);
+                return;
+            }
+            socket.emit('play_card', {
+                room: roomId,
+                card_id: cardId,
+                from_pile: selectedTableauPileIdx,
+                pile: pileNum
+            });
+            sound.playSnap();
+        }
+
         function handleDragStart(e, cardId) {
             isDraggingCardId = cardId;
+            const cardEl = document.getElementById(`card-${cardId}`);
+            if (cardEl && cardEl.dataset.fromPile !== undefined) {
+                selectedTableauPileIdx = parseInt(cardEl.dataset.fromPile);
+            }
+            selectedHandCardId = cardId;
             e.dataTransfer.setData('text/plain', cardId);
             e.dataTransfer.effectAllowed = 'move';
             sound.playSnap();
             document.getElementById('centralPile1').classList.add('active-target');
             document.getElementById('centralPile2').classList.add('active-target');
+            document.querySelectorAll('.tableau-slot-empty').forEach(el => el.classList.add('active-gap-target'));
         }
 
         function handleDragEnd() {
             isDraggingCardId = null;
             document.getElementById('centralPile1').classList.remove('active-target', 'drag-hover');
             document.getElementById('centralPile2').classList.remove('active-target', 'drag-hover');
+            document.querySelectorAll('.tableau-slot-empty').forEach(el => el.classList.remove('active-gap-target', 'active-gap-hover'));
         }
 
         function handleDragOver(e, pileNum) {
@@ -2184,11 +2587,27 @@
             e.preventDefault();
             const pile = document.getElementById(`centralPile${pileNum}`);
             pile.classList.remove('drag-hover');
-            const cardId = e.dataTransfer.getData('text/plain') || isDraggingCardId;
+            const cardId = e.dataTransfer.getData('text/plain') || isDraggingCardId || selectedHandCardId;
             if (cardId) {
                 executePlay(cardId, pileNum);
             }
             deselectCard();
+        }
+
+        function handleDragOverGap(e, slotIdx) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.currentTarget.classList.add('active-gap-hover');
+        }
+
+        function handleDragLeaveGap(e, slotIdx) {
+            e.currentTarget.classList.remove('active-gap-hover');
+        }
+
+        function handleDropGap(e, slotIdx) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('active-gap-hover');
+            handleEmptySlotClick(slotIdx);
         }
 
         // --- Mobile Touch Drag & Play Gesture Handlers ---
@@ -2203,14 +2622,22 @@
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
             isTouchMoved = false;
+
+            const cardEl = document.getElementById(`card-${cardId}`);
+            if (cardEl && cardEl.dataset.fromPile !== undefined) {
+                selectedTableauPileIdx = parseInt(cardEl.dataset.fromPile);
+            }
+            selectedHandCardId = cardId;
+
             e.currentTarget.classList.add('selected');
             document.getElementById('centralPile1').classList.add('active-target');
             document.getElementById('centralPile2').classList.add('active-target');
+            document.querySelectorAll('.tableau-slot-empty').forEach(el => el.classList.add('active-gap-target'));
         }
 
         function handleTouchMove(e, cardId) {
             if (!touchDragCardId) return;
-            if (e.cancelable) e.preventDefault(); // Prevents mobile viewport scroll & black background shift!
+            if (e.cancelable) e.preventDefault();
             const t = e.touches[0];
             const dx = t.clientX - touchStartX;
             const dy = t.clientY - touchStartY;
@@ -2240,15 +2667,18 @@
 
             pile1.classList.remove('active-target', 'drag-hover');
             pile2.classList.remove('active-target', 'drag-hover');
-            deselectCard();
 
             if (isP1) {
                 executePlay(cardId, 1);
+                deselectCard();
             } else if (isP2) {
                 executePlay(cardId, 2);
+                deselectCard();
             } else if (!isTouchMoved) {
                 // Quick tap without move: handle click selection
                 handleCardClick(cardId);
+            } else {
+                deselectCard();
             }
             touchDragCardId = null;
         }
@@ -2266,15 +2696,6 @@
                 if (e.cancelable) e.preventDefault();
             }
         }, { passive: false });
-
-        function executePlay(cardId, pileNum) {
-            socket.emit('play_card', {
-                room: roomId,
-                card_id: cardId,
-                pile: pileNum
-            });
-            sound.playSnap();
-        }
 
         function requestSpit() {
             sound.playSpitFlip();
@@ -2390,13 +2811,25 @@
 
         // --- Keyboard Shortcuts ---
         window.addEventListener('keydown', (e) => {
-            if (e.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+            const activeTag = document.activeElement ? document.activeElement.tagName : '';
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag) || (e.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) || (e.target && e.target.isContentEditable)) {
+                return;
+            }
             const key = e.key;
             if (['1', '2', '3', '4', '5'].includes(key)) {
-                const idx = parseInt(key) - 1;
-                const handCards = document.querySelectorAll('.player-hand .card');
-                if (handCards[idx]) {
-                    handleCardClick(handCards[idx].dataset.cardId);
+                const targetIdx = parseInt(key) - 1;
+                // If a card is already selected and target slot is empty: execute gap fill!
+                if (selectedHandCardId && selectedTableauPileIdx !== null && selectedTableauPileIdx !== targetIdx) {
+                    const emptySlot = document.querySelector(`#localPile-${targetIdx} .tableau-slot-empty`);
+                    if (emptySlot) {
+                        handleEmptySlotClick(targetIdx);
+                        return;
+                    }
+                }
+                // Otherwise select/toggle top card of target pile
+                const cardInPile = document.querySelector(`#localPile-${targetIdx} .card`);
+                if (cardInPile && cardInPile.dataset.cardId) {
+                    handleCardClick(cardInPile.dataset.cardId);
                 }
             }
             if (key.toLowerCase() === 'q') {
@@ -2405,7 +2838,12 @@
                 handlePileClick(2);
             } else if (key === ' ' || key.toLowerCase() === 's') {
                 e.preventDefault();
-                requestSpit();
+                if (latestGameState && latestGameState.can_slap) {
+                    const chosen = (latestGameState.pile1_count <= latestGameState.pile2_count) ? 1 : 2;
+                    requestSlap(chosen);
+                } else {
+                    requestSpit();
+                }
             } else if (key === 'Enter') {
                 const gameOverModal = document.getElementById('gameOverModal');
                 if (gameOverModal && gameOverModal.classList.contains('active')) {
