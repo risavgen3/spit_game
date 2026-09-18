@@ -913,6 +913,61 @@
         .dot.waiting { background: var(--accent-gold); box-shadow: 0 0 10px var(--accent-gold); animation: pulseDot 1s infinite; }
         @keyframes pulseDot { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
+        /* 6-Digit Room Matchmaker Styles */
+        .room-code-badge {
+            font-family: 'Space Grotesk', monospace;
+            font-size: 1.85rem;
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 15px rgba(0, 242, 254, 0.6);
+            background: rgba(0, 242, 254, 0.08);
+            border: 1px dashed var(--accent-cyan);
+            border-radius: 12px;
+            padding: 8px 14px;
+            display: inline-block;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+            user-select: all;
+            -webkit-user-select: all;
+        }
+
+        .digit-code-input {
+            font-family: 'Space Grotesk', monospace;
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 5px;
+            text-align: center;
+            text-transform: uppercase;
+            background: rgba(3, 12, 7, 0.85);
+            color: #fff;
+            border: 1px solid rgba(0, 242, 254, 0.4);
+            border-radius: 12px;
+            padding: 9px 12px;
+            width: 100%;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .digit-code-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 16px rgba(0, 242, 254, 0.4);
+        }
+
+        .player-nickname-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            background: rgba(4, 15, 9, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 8px 14px;
+            margin-bottom: 12px;
+        }
+
         .share-row {
             display: flex;
             gap: 8px;
@@ -1144,7 +1199,17 @@
                 </div>
             </div>
 
-            <!-- Action Cards (Solo vs AI Bot & 2-Player Window) -->
+            <!-- Player Nickname Configuration -->
+            <div class="player-nickname-row">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.1rem;">👤</span>
+                    <label for="username" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Your Player Name:</label>
+                </div>
+                <input type="text" id="username" class="share-input" style="max-width: 170px; font-weight: 700; text-align: center;" placeholder="Your Name" value="Player 1" />
+                <input type="hidden" id="roomname" value="lobby" />
+            </div>
+
+            <!-- Action Grid: Solo AI vs 2-Player Options -->
             <div class="action-grid">
                 <!-- Solo vs AI Bot -->
                 <div class="action-card featured">
@@ -1168,33 +1233,72 @@
                     </div>
                 </div>
 
-                <!-- 2-Player Window Test -->
-                <div class="action-card" id="multiplayerActionCard">
+                <!-- 2-Player Multiplayer: Create & Join -->
+                <div class="action-card" id="multiplayerActionCard" style="border-color: rgba(16, 185, 129, 0.4); background: linear-gradient(145deg, rgba(16, 185, 129, 0.08), rgba(6, 18, 12, 0.85));">
                     <div>
                         <div class="action-card-header">
-                            <span class="action-icon">🪟</span>
-                            <span class="action-title">2-Player Multiplayer Test</span>
+                            <span class="action-icon">👥</span>
+                            <span class="action-title">2-Player Room Match</span>
                         </div>
                         <p class="action-desc">
-                            Instantly test multiplayer in real-time! Open Player 2 side-by-side or in a new browser tab.
+                            Host a private 6-digit room or enter an existing 6-digit code to battle in real-time.
                         </p>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px; font-size: 0.95rem;" onclick="openPlayer2Window('window')">
-                            🪟 Launch Player 2 Window
-                        </button>
-                        <button class="btn btn-sm" style="width: 100%; justify-content: center; padding: 8px;" onclick="openPlayer2Window('tab')">
-                            🔗 Open Player 2 (New Tab)
-                        </button>
+
+                    <!-- Option 1: Create Room (Host Match) -->
+                    <div style="background: rgba(3, 12, 7, 0.7); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 10px;">
+                        <div style="font-size: 0.76rem; font-weight: 800; color: var(--accent-emerald); text-transform: uppercase; margin-bottom: 6px;">
+                            Option 1: Create Room
+                        </div>
+                        <div id="createRoomInitial">
+                            <button class="btn btn-primary" id="btnCreateRoom" style="width: 100%; justify-content: center; padding: 9px; font-size: 0.9rem; font-weight: 700;" onclick="createRoomCode()">
+                                🎲 Create 6-Digit Room
+                            </button>
+                        </div>
+                        <div id="createRoomActive" style="display: none;">
+                            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Your 6-Digit Room Code:</div>
+                            <div class="room-code-badge" id="displayCreatedCode">------</div>
+                            <div style="display: flex; gap: 6px; margin-top: 6px;">
+                                <button class="btn btn-sm btn-primary" style="flex: 1; justify-content: center;" onclick="copyRoomCodeOnly()">
+                                    📋 Copy Code
+                                </button>
+                                <button class="btn btn-sm" style="flex: 1; justify-content: center;" onclick="copyInviteLink()">
+                                    🔗 Copy Link
+                                </button>
+                            </div>
+                            <button class="btn btn-sm" id="p2WindowLaunchBtn" style="width: 100%; justify-content: center; margin-top: 6px;" onclick="openPlayer2Window('window')">
+                                🪟 Launch Player 2 Window
+                            </button>
+                            <div style="font-size: 0.74rem; color: var(--accent-cyan); margin-top: 6px; text-align: center;">
+                                ⏳ Waiting for Player 2 to join...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Option 2: Join Room (Enter Code) -->
+                    <div style="background: rgba(3, 12, 7, 0.7); border: 1px solid rgba(0, 242, 254, 0.25); border-radius: 12px; padding: 10px;">
+                        <div style="font-size: 0.76rem; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase; margin-bottom: 6px;">
+                            Option 2: Join Room
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="joinRoomCodeInput" maxlength="6" pattern="[0-9]*" inputmode="numeric"
+                                   placeholder="• • • • • •" class="digit-code-input" style="font-size: 1.15rem; padding: 7px 10px; width: 58%;"
+                                   oninput="this.value = this.value.replace(/\D/g, '').slice(0, 6);"
+                                   onkeydown="if(event.key==='Enter') joinWithCode()" />
+                            <button class="btn btn-primary" style="flex: 1; justify-content: center; padding: 8px 10px; font-size: 0.9rem; font-weight: 700;" onclick="joinWithCode()">
+                                ⚡ Join Match
+                            </button>
+                        </div>
+                        <div id="joinCodeError" style="color: var(--accent-ruby); font-size: 0.74rem; margin-top: 4px; min-height: 16px;"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Share & Room Info Row -->
-            <div style="text-align: left; margin-top: 10px; background: rgba(3, 12, 7, 0.6); padding: 12px; border-radius: 12px; border: 1px dashed rgba(16, 185, 129, 0.3);">
+            <div style="text-align: left; margin-top: 8px; background: rgba(3, 12, 7, 0.6); padding: 10px 12px; border-radius: 12px; border: 1px dashed rgba(16, 185, 129, 0.3);">
                 <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
-                    <span>Room: <b id="roomCodeDisplay" style="color: var(--accent-cyan); font-family: monospace;">lobby</b></span>
-                    <span style="color: var(--text-muted);">Share with a friend on local Wi-Fi or another tab</span>
+                    <span>Active Room: <b id="roomCodeDisplay" style="color: var(--accent-cyan); font-family: monospace;">lobby</b></span>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">Share link or 6-digit code with friend</span>
                 </div>
                 <div class="share-row">
                     <input type="text" id="shareUrlInput" readonly class="share-input" />
@@ -1202,25 +1306,8 @@
                 </div>
             </div>
 
-            <!-- Login / Custom Room Join Panel -->
-            <div id="login-screen" style="margin-top: 14px; background: rgba(6, 18, 12, 0.85); padding: 14px; border-radius: 14px; border: 1px solid rgba(0, 242, 254, 0.25); text-align: left;">
-                <div style="font-size: 0.85rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    🎮 Custom Room / Enter Name
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                    <div>
-                        <label for="username" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Player Name</label>
-                        <input type="text" id="username" class="share-input" placeholder="Your Name" style="width: 100%;" value="Player 1" />
-                    </div>
-                    <div>
-                        <label for="roomname" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Room Code</label>
-                        <input type="text" id="roomname" class="share-input" placeholder="Room Code" style="width: 100%;" value="lobby" />
-                    </div>
-                </div>
-                <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px; font-weight: 700;" onclick="joinGame()">
-                    🚀 Join Game &amp; Enter Table
-                </button>
-            </div>
+            <!-- Backwards-compatible Login container -->
+            <div id="login-screen" class="hidden"></div>
         </div>
     </div>
 
@@ -1322,21 +1409,109 @@
         window.currentRoom = currentRoom;
         window.roomId = roomId;
 
+        function getPlayerName() {
+            const userEl = document.getElementById('username');
+            return (userEl ? userEl.value.trim() : '') || playerName || 'Player 1';
+        }
+
+        function updateRoomDisplays(code) {
+            currentRoom = code;
+            roomId = code;
+            window.currentRoom = code;
+            window.roomId = code;
+
+            const roomInput = document.getElementById('roomname');
+            if (roomInput) roomInput.value = code;
+
+            const roomCodeDisplay = document.getElementById('roomCodeDisplay');
+            if (roomCodeDisplay) roomCodeDisplay.textContent = code;
+
+            const bannerRoomName = document.getElementById('bannerRoomName');
+            if (bannerRoomName) bannerRoomName.textContent = code;
+
+            const shareUrlInput = document.getElementById('shareUrlInput');
+            if (shareUrlInput) {
+                shareUrlInput.value = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(code)}`;
+            }
+
+            const roomBadge = document.getElementById('room-badge');
+            if (roomBadge) roomBadge.innerText = `Room: ${code}`;
+        }
+
+        function createRoomCode() {
+            if (typeof sound !== 'undefined') sound.playSnap();
+            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            updateRoomDisplays(code);
+
+            const disp = document.getElementById('displayCreatedCode');
+            if (disp) disp.textContent = code;
+
+            const initDiv = document.getElementById('createRoomInitial');
+            if (initDiv) initDiv.style.display = 'none';
+
+            const actDiv = document.getElementById('createRoomActive');
+            if (actDiv) actDiv.style.display = 'block';
+
+            const name = getPlayerName() || 'Host (P1)';
+            socket.emit('join_game', { name: name, room: code });
+            showToast(`Room ${code} created! Waiting for Player 2.`, 'success');
+        }
+
+        function copyRoomCodeOnly() {
+            if (typeof sound !== 'undefined') sound.playSnap();
+            const code = currentRoom || roomId || 'lobby';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(code).then(() => {
+                    showToast(`Room code ${code} copied to clipboard!`, 'success');
+                }).catch(() => {
+                    prompt('Copy your 6-digit room code:', code);
+                });
+            } else {
+                prompt('Copy your 6-digit room code:', code);
+            }
+        }
+
+        function joinWithCode() {
+            if (typeof sound !== 'undefined') sound.playSnap();
+            const input = document.getElementById('joinRoomCodeInput');
+            const errDiv = document.getElementById('joinCodeError');
+            if (errDiv) errDiv.textContent = '';
+
+            const rawVal = input ? input.value.trim() : '';
+            const code = rawVal.replace(/\D/g, '');
+
+            if (code.length !== 6) {
+                if (typeof sound !== 'undefined') sound.playInvalid();
+                if (errDiv) errDiv.textContent = 'Please enter a complete 6-digit code!';
+                if (input) {
+                    input.classList.add('shake');
+                    setTimeout(() => input.classList.remove('shake'), 480);
+                }
+                showToast('Please enter a 6-digit room code!', 'error');
+                return;
+            }
+
+            updateRoomDisplays(code);
+            const name = getPlayerName() || 'Player 2';
+            socket.emit('join_game', { name: name, room: code, join_only: true });
+            showToast(`Connecting to Room ${code}...`, 'info');
+        }
+
         function autoDetectRoom() {
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
             if (roomParam) {
                 const roomEl = document.getElementById('roomname');
                 if (roomEl) roomEl.value = roomParam;
-                currentRoom = roomParam;
-                window.currentRoom = currentRoom;
-                if (typeof roomId !== 'undefined') roomId = roomParam;
+                const joinInput = document.getElementById('joinRoomCodeInput');
+                if (joinInput && /^\d{6}$/.test(roomParam)) joinInput.value = roomParam;
+                updateRoomDisplays(roomParam);
             }
             const playerParam = urlParams.get('player');
             if (playerParam) {
                 const userEl = document.getElementById('username');
                 if (userEl) userEl.value = playerParam;
-                if (typeof playerName !== 'undefined') playerName = playerParam;
+                playerName = playerParam;
             }
         }
         autoDetectRoom();
@@ -1354,34 +1529,34 @@
             });
         });
 
+        socket.on('join_error', (data) => {
+            if (typeof sound !== 'undefined') sound.playInvalid();
+            const errDiv = document.getElementById('joinCodeError');
+            if (errDiv) errDiv.textContent = data.message || 'Unable to join room';
+            showToast(data.message || 'Unable to join room!', 'error');
+        });
+
+        socket.on('room_created', (data) => {
+            if (data && data.room) {
+                updateRoomDisplays(data.room);
+                const disp = document.getElementById('displayCreatedCode');
+                if (disp) disp.textContent = data.room;
+            }
+        });
+
         function joinGame() {
-            const userEl = document.getElementById('username');
+            const name = getPlayerName();
             const roomEl = document.getElementById('roomname');
-            const name = (userEl ? userEl.value.trim() : '') || playerName || 'Player 1';
             const room = (roomEl ? roomEl.value.trim() : '') || currentRoom || 'lobby';
             if (!name) { alert('Please enter your name'); return; }
-            currentRoom = room;
-            roomId = room;
-            playerName = name;
-            window.currentRoom = currentRoom;
-            window.roomId = roomId;
+            updateRoomDisplays(room);
 
             socket.emit('join_game', { name, room });
             const loginEl = document.getElementById('login-screen');
             if (loginEl) loginEl.classList.add('hidden');
             const gameEl = document.getElementById('game-screen');
             if (gameEl) gameEl.classList.remove('hidden');
-            const roomBadge = document.getElementById('room-badge');
-            if (roomBadge) roomBadge.innerText = `Room: ${room}`;
 
-            const roomCodeDisplay = document.getElementById('roomCodeDisplay');
-            if (roomCodeDisplay) roomCodeDisplay.textContent = room;
-            const bannerRoomName = document.getElementById('bannerRoomName');
-            if (bannerRoomName) bannerRoomName.textContent = room;
-            const shareUrlInput = document.getElementById('shareUrlInput');
-            if (shareUrlInput) {
-                shareUrlInput.value = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(room)}`;
-            }
             if (typeof closeModeModal === 'function') closeModeModal();
         }
 
@@ -1948,7 +2123,8 @@
         // --- 2-Player Window Launcher ---
         function openPlayer2Window(target = 'window') {
             sound.playSnap();
-            const url = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(roomId)}&player=Player+2`;
+            const activeRoom = currentRoom || roomId || 'lobby';
+            const url = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(activeRoom)}&player=Player+2`;
             if (target === 'tab') {
                 window.open(url, '_blank');
                 showToast('Opened Player 2 in a new browser tab!', 'success');
@@ -1979,8 +2155,9 @@
             }
             document.getElementById('waitingModal').classList.add('active');
             document.getElementById('waitingBanner').style.display = 'none';
+            const activeRoom = currentRoom || roomId || 'lobby';
             if (typeof socket !== 'undefined' && socket.connected) {
-                socket.emit('reset_to_waiting', { room: roomId });
+                socket.emit('reset_to_waiting', { room: activeRoom });
             }
         }
 
@@ -1999,10 +2176,11 @@
         }
 
         function copyInviteLink() {
-            const url = window.location.origin + window.location.pathname + '?room=' + encodeURIComponent(roomId);
+            const activeRoom = currentRoom || roomId || 'lobby';
+            const url = window.location.origin + window.location.pathname + '?room=' + encodeURIComponent(activeRoom);
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(url).then(() => {
-                    showToast('Room link copied! Paste in another tab to play Player 2.', 'success');
+                    showToast('Room link copied! Paste in another tab or share with friend.', 'success');
                 }).catch(() => {
                     prompt('Copy this room URL to invite Player 2:', url);
                 });

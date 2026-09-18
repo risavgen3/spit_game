@@ -354,41 +354,86 @@ def get_request_sid() -> str:
     """Safely retrieves socket session ID injected into request context by Flask-SocketIO"""
     return getattr(request, 'sid', '')
 
+@socketio.on('create_room')
+def on_create_room(data):
+    sid = get_request_sid()
+    player_name = str(data.get('name') or 'Player 1').strip()
+    with rooms_lock:
+        for _ in range(100):
+            code = f"{random.randint(100000, 999999)}"
+            if code not in rooms:
+                break
+        else:
+            code = str(uuid.uuid4())[:6]
+        room = get_or_create_room(code)
+
+    with room.lock:
+        join_room(code)
+        room.p1_sid = sid
+        room.players[sid] = {'role': 'p1', 'name': player_name}
+        room.log_event(f'{player_name} created Room {code}.')
+
+    emit('room_created', {'room': code, 'name': player_name})
+    sync_room_state(room)
+
 @socketio.on('join_game')
 def on_join(data):
     sid = get_request_sid()
-    room_id = (data.get('room') or 'lobby').strip()
-    player_name = (data.get('name') or '').strip()
-    room = get_or_create_room(room_id)
+    room_id = str(data.get('room') or 'lobby').strip()
+    player_name = str(data.get('name') or '').strip()
+    join_only = bool(data.get('join_only', False))
+
+    with rooms_lock:
+        room_exists = room_id in rooms
+        if join_only and not room_exists:
+            emit('join_error', {
+                'message': f'Room code "{room_id}" not found. Please verify the 6-digit code with your host!'
+            })
+            return
+        room = get_or_create_room(room_id)
 
     ready_to_start = False
     with room.lock:
+        # Check if room is full for a new player joining
+        if sid != room.p1_sid and sid != room.p2_sid:
+            if room.p1_sid is not None and room.p2_sid is not None and not room.is_bot_p2:
+                if join_only:
+                    emit('join_error', {
+                        'message': f'Room "{room_id}" is already full with 2 active players!'
+                    })
+                    return
+                # Non-join_only fallback: join as spectator
+                if not player_name:
+                    player_name = f'Spectator {len(room.players)+1}'
+                join_room(room_id)
+                room.players[sid] = {'role': 'spectator', 'name': player_name}
+                room.log_event(f'{player_name} joined as Spectator.')
+                sync_room_state(room)
+                return
+
         join_room(room_id)
-        role = 'spectator'
         if room.p1_sid is None:
             room.p1_sid = sid
-            role = 'p1'
             if not player_name:
                 player_name = 'Player 1'
             room.players[sid] = {'role': 'p1', 'name': player_name}
-            room.log_event(f'{player_name} joined as Player 1.')
+            room.log_event(f'{player_name} joined as Player 1 (Host).')
         elif room.p2_sid is None or room.is_bot_p2:
             if sid != room.p1_sid:
                 if room.is_bot_p2:
                     room.remove_bot()
                 room.p2_sid = sid
-                role = 'p2'
                 if not player_name:
                     player_name = 'Player 2'
                 room.players[sid] = {'role': 'p2', 'name': player_name}
                 room.log_event(f'{player_name} joined as Player 2.')
         else:
-            if not player_name:
-                player_name = f'Spectator {len(room.players)+1}'
-            room.players[sid] = {'role': 'spectator', 'name': player_name}
-            room.log_event(f'{player_name} joined as Spectator.')
+            # Reconnecting player updating name
+            if sid in room.players and player_name:
+                room.players[sid]['name'] = player_name
 
         ready_to_start = (room.p1_sid is not None and room.p2_sid is not None and room.status in ('waiting', 'game_over'))
+        print(f"[DEBUG on_join] sid={sid} room_id={room_id} join_only={join_only} p1={room.p1_sid} p2={room.p2_sid} ready={ready_to_start}")
 
     if ready_to_start:
         start_countdown(room)
