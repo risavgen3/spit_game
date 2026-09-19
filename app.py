@@ -1,7 +1,3 @@
-import eventlet
-eventlet.monkey_patch()
-
-# All other imports go below here
 import os
 import random
 import uuid
@@ -12,9 +8,11 @@ from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'spit-card-game-secret-key-2026')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+# simple-websocket automatically attaches via threading mode
+socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
 
 # --- Card Engine & Rules ---
 SUITS = ['hearts', 'diamonds', 'clubs', 'spades']
