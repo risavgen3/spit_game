@@ -1,28 +1,20 @@
+import eventlet
+eventlet.monkey_patch()
+
+# All other imports go below here
 import os
-
-# Eventlet monkey-patching MUST occur before importing socket/threading/time for Gunicorn on Render
-try:
-    import eventlet  # type: ignore
-    eventlet.monkey_patch()
-    async_mode = 'eventlet'
-except Exception:
-    async_mode = 'threading'
-
 import random
 import uuid
 import threading
 import time
 from typing import Literal
 from flask import Flask, render_template, request, jsonify
-from flask_socketio import SocketIO, emit, join_room, leave_room  # type: ignore
+from flask_socketio import SocketIO, emit, join_room, leave_room
 
 app = Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
-if os.environ.get('ASYNC_MODE') == 'eventlet':
-    async_mode = 'eventlet'
-
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode=async_mode)  # type: ignore
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # --- Card Engine & Rules ---
 SUITS = ['hearts', 'diamonds', 'clubs', 'spades']
