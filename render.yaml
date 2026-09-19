@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: spit-card-game
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 1 --threads 4 app:app
