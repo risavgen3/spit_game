@@ -9,7 +9,7 @@ import websocket
 BRAVE_PATH = r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
 PROFILE_DIR = r"c:\Users\Risav Chanda\.gemini\antigravity\scratch\spit-card-game\brave_test_profile"
 TARGET_URL = "http://127.0.0.1:5000"
-SCREENSHOT_PATH = r"C:\Users\Risav Chanda\.gemini\antigravity-ide\brain\4bdd63d3-437f-4a0d-9b4a-96b765ea7e56\brave_tableau_gameplay.png"
+SCREENSHOT_PATH = os.environ.get("SCREENSHOT_PATH", os.path.join(os.path.dirname(__file__), "brave_tableau_gameplay.png"))
 
 def run_brave_test():
     print(f"Launching Brave Browser from {BRAVE_PATH}...")
